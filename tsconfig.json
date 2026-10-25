@@ -1,0 +1,1 @@
+{"compilerOptions":{"module":"ESNext","moduleResolution":"bundler","noEmit":false,"outDir":"dist","skipLibCheck":true,"strict":true,"target":"ES2022","types":["vitest/globals"]},"include":["src","tests"]}

@@ -29,26 +29,26 @@ app.innerHTML = `
 </div>
 <div class="notice" id="msg"></div>
 <div class="layout">
-  <div class="panel"><h3>🧬 协议羁绊（按部署动态计算）</h3><div id="synergies"></div>
+  <div class="panel side-panel"><h3>🧬 协议羁绊（按部署动态计算）</h3><div id="synergies"></div>
     <h3>📊 战斗统计</h3><div id="stats" class="muted"></div>
     <h3>🖥️ 终端日志</h3><div class="log" id="log"></div></div>
-  <div class="panel"><h3>🌐 中央网络战场</h3><div id="phaseLabel" class="notice"></div>
+  <div class="panel center-panel"><h3>🌐 中央网络战场</h3><div id="phaseLabel" class="notice"></div>
     <div><span class="legend-player">■ 我方（青色边框 + 我字徽标）</span> &nbsp; <span class="legend-enemy">■ 敌方（红色边框 + 敌字徽标 + 红色血条）</span></div>
     <div class="step-hint" id="stepHint"></div>
-    <div id="enemyArea"><div class="legend-enemy">▲ 敌方网络（品红/红色区域）</div><div class="muted">战斗开始时 AI 会按回合强度自动生成并部署阵容（防御节点前排、输出后排），不是预设动画。</div><div class="grid" id="enemyGrid"></div></div>
+    <div id="enemyArea" class="field-area"><div class="legend-enemy">▲ 敌方网络（品红/红色区域）</div><div class="grid" id="enemyGrid"></div></div>
     <div class="arena" id="arena" style="display:none"><div class="mid"></div><div id="tokens"></div></div>
-    <div style="margin-top:8px"><div class="legend-player">▼ 我方网络（青色区域）</div><div class="muted">下方为你的部署区（8×4，前排贴近敌方）。已部署 <span id="pop"></span> · 选中备战区单位后，青色区域里带黄色虚线框的空格就是可部署格，直接点它</div><div class="grid" id="playerGrid"></div></div>
-    <h3>⚔️ 战斗事件</h3><div class="log" id="battleLog" style="height:130px"></div></div>
-  <div class="panel"><h3>🔍 单位详情</h3><div id="detail"></div>
+    <div class="field-area"><div class="legend-player">▼ 我方网络（青色区域） · 已部署 <span id="pop"></span> · 黄色虚线框就是可部署格</div><div class="grid" id="playerGrid"></div></div>
+    <details class="battle-log-box"><summary>⚔️ 战斗事件（点开查看）</summary><div class="log" id="battleLog"></div></details></div>
+  <div class="panel side-panel"><h3>🔍 单位详情</h3><div id="detail"></div>
     <h3>🧩 软件模块（库存）</h3><div id="modules"></div>
     <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button id="btnDeploy" class="primary">⬆️ 部署选中单位到空位</button><button id="btnReturn">⬇️ 收回选中单位到备战区</button><button id="btnSell" class="danger">出售选中单位</button></div>
     <div class="muted" style="margin-top:8px">模块获得：开局各 1 个超频芯片/纳米装甲；每 3 回合补给 1 个（轮换）。每个单位最多 3 个模块。</div></div>
 </div>
-<div class="panel" style="margin-top:10px"><h3>🛒 黑市商店 <span class="muted">刷新 2 算力 · 买走的格子在刷新/下一回合前保持为空 · 利息：每 10 算力 +1，上限 5</span></h3>
-  <div style="display:flex;gap:6px;flex-wrap:wrap"><button id="btnRefresh">🔄 刷新商店（2）</button><button id="btnXp">⬆️ 购买经验（4 算力 = +4 经验）</button><button id="btnAutoDeploy" class="primary">⚡ 一键部署全部备战单位</button><span class="muted" id="xpHint"></span></div>
-  <div class="shop" id="shop"></div>
-  <h3 style="margin-top:10px">📦 备战区（9 格，点击单位选中，再点击部署区空格部署）</h3><div class="bench" id="bench"></div>
-  <div class="muted" style="margin-top:10px">玩法（最简单三步）：点商店卡购买 → 点「一键部署全部备战单位」（防御自动站前排、远程站后排），或点备战区单位再点带黄色虚线框的空格 → 点「开始战斗」。选中单位后点另一格可交换位置，右侧还有「部署到空位 / 收回备战区」按钮。相同单位同星满 3 张自动合成高一星（属性 ×1.8 / ×2.9）。人口 = 等级，上限 9。胜负伤害 = 3 + 存活单位数。战斗超时 60 秒按剩余生命判定。核心先归零者败。敌我区分：我方青色边框 + 我字徽标 + 绿色血条，敌方红色边框 + 敌字徽标 + 红色血条。<br/>声明：本游戏全部攻防均为虚构游戏机制，不连接真实目标，不执行真实网络攻击。职业立绘来源见 ASSETS.md。</div>
+<div class="panel bottom-panel"><div class="bottom-head"><h3>🛒 黑市商店 <span class="muted">刷新 2 算力 · 利息：每 10 算力 +1，上限 5</span></h3>
+  <div style="display:flex;gap:6px;flex-wrap:wrap"><button id="btnRefresh">🔄 刷新商店（2）</button><button id="btnXp">⬆️ 购买经验（4 = +4 经验）</button><button id="btnAutoDeploy" class="primary">⚡ 一键部署全部备战单位</button><span class="muted" id="xpHint"></span></div></div>
+  <div class="bottom-row"><div class="shop-wrap"><div class="shop" id="shop"></div></div>
+  <div class="bench-wrap"><h3>📦 备战区（9 格）</h3><div class="bench" id="bench"></div></div></div>
+  <details class="howto"><summary>玩法说明（点开）</summary><div class="muted">最简单三步：点商店卡购买 → 点「一键部署全部备战单位」（防御自动站前排、远程站后排），或点备战区单位再点带黄色虚线框的空格 → 点「开始战斗」。选中单位后点另一格可交换位置，右侧还有「部署到空位 / 收回备战区」按钮。相同单位同星满 3 张自动合成高一星（属性 ×1.8 / ×2.9）。人口 = 等级，上限 9。胜负伤害 = 3 + 存活单位数。战斗超时 60 秒按剩余生命判定。核心先归零者败。敌我区分：我方青色边框 + 我字徽标 + 绿色血条，敌方红色边框 + 敌字徽标 + 红色血条。<br/>声明：本游戏全部攻防均为虚构游戏机制，不连接真实目标，不执行真实网络攻击。职业立绘来源见 ASSETS.md。</div></details>
 </div>`;
 const $ = (id: string) => document.getElementById(id)!;
 function setMsg(t: string) { msg = t; $('msg').textContent = t; }

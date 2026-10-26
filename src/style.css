@@ -43,3 +43,42 @@ button.danger{background:#3b0a2a;border-color:#e879f9;color:#fbcfe8}
 .tagchip{display:inline-block;border:1px solid #164e63;border-radius:10px;padding:1px 6px;margin:2px;font-size:11px;color:#a5f3fc}
 .notice{color:#facc15;font-size:13px} .muted{color:#94a3b8;font-size:12px}
 @media(max-width:1000px){.layout{grid-template-columns:1fr}.arena{height:340px}}
+/* ===== 一屏布局：参考货币战争（星铁自走棋）——顶部资源条 + 中间棋盘 + 底部商店备战区，页面本身不滚动 ===== */
+html,body{height:100%;overflow:hidden}
+#app{height:100dvh;max-width:1560px;display:flex;flex-direction:column;padding:8px;gap:8px}
+.topbar{flex:none;padding:8px 12px}
+.topbar h1{font-size:18px}
+.notice#msg:empty{display:none}
+.layout{flex:1;min-height:0;margin-top:0;grid-template-columns:210px 1fr 250px}
+.panel{min-height:0;overflow-y:auto;overflow-x:hidden;padding:8px 10px}
+.panel h3{margin-bottom:6px;padding-bottom:4px}
+.center-panel{display:flex;flex-direction:column;overflow:hidden}
+.center-panel .step-hint{margin:4px 0;padding:6px 8px;font-size:12px}
+.field-area{flex:1;min-height:0;display:flex;flex-direction:column}
+.field-area .grid{flex:1;min-height:0;grid-template-rows:repeat(4,1fr)}
+#enemyGrid .cell,#playerGrid .cell{aspect-ratio:auto}
+.arena{flex:1;min-height:0;height:auto}
+.battle-log-box{flex:none;margin-top:6px;font-size:12px}
+.battle-log-box .log{height:90px}
+.side-panel .log{height:150px}
+.bottom-panel{flex:none;overflow:hidden;padding:8px 10px}
+.bottom-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.bottom-head h3{border-bottom:none;margin:0;padding:0}
+.bottom-row{display:flex;gap:14px;align-items:stretch;margin-top:6px}
+.shop-wrap{flex:1;min-width:0}
+.shop{margin-top:0;gap:6px}
+.shop .card{padding:6px 8px;font-size:11px}
+.shop .card .ic{font-size:20px}
+.shop .card .muted{font-size:11px}
+.bench-wrap{flex:none}
+.bench-wrap h3{margin-bottom:4px}
+.bench{margin-top:0;gap:5px;flex-wrap:nowrap}
+.bench .cell{width:56px;height:56px}
+.howto{margin-top:4px;font-size:12px}
+.howto summary{cursor:pointer;color:#94a3b8}
+.unit-img.big{width:48px;height:48px}
+@media(max-height:760px){
+  .side-panel .log,.battle-log-box .log{display:none}
+  .bench .cell{width:48px;height:48px}
+  .shop .card .muted{display:none}
+}

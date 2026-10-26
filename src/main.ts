@@ -17,13 +17,10 @@ const app = document.getElementById('app')!;
 app.innerHTML = `
 <div class="topbar">
   <h1>黑客世界 <span>HACKER WORLD</span></h1>
+  <div class="stat">准备阶段 · 第 <b id="round"></b> 回合</div>
   <div class="stat">玩家核心 <span class="corebar"><i id="pcoreBar"></i></span> <b id="pcore"></b></div>
   <div class="stat">AI 核心 <span class="corebar"><i id="ecoreBar"></i></span> <b id="ecore"></b></div>
-  <div class="stat">回合 <b id="round"></b></div>
-  <div class="stat">算力 💰 <b id="gold"></b></div>
-  <div class="stat">等级 <b id="level"></b>（经验 <span id="xp"></span>）</div>
   <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
-    <button id="btnBattle" class="primary">▶ 开始战斗</button>
     <button id="btnSave">💾 保存</button><button id="btnLoad">📂 读取</button><button id="btnRestart" class="danger">↻ 重新开始</button>
   </div>
 </div>
@@ -32,23 +29,25 @@ app.innerHTML = `
   <div class="panel side-panel"><h3>🧬 协议羁绊（按部署动态计算）</h3><div id="synergies"></div>
     <h3>📊 战斗统计</h3><div id="stats" class="muted"></div>
     <h3>🖥️ 终端日志</h3><div class="log" id="log"></div></div>
-  <div class="panel center-panel"><h3>🌐 中央网络战场</h3><div id="phaseLabel" class="notice"></div>
-    <div><span class="legend-player">■ 我方（青色边框 + 我字徽标）</span> &nbsp; <span class="legend-enemy">■ 敌方（红色边框 + 敌字徽标 + 红色血条）</span></div>
+  <div class="panel center-panel">
+    <div id="phaseLabel" class="notice"></div>
     <div class="step-hint" id="stepHint"></div>
+    <div class="shop-section" id="shopSection"><h3>🛒 黑市商店 <span class="muted">点卡即买 · 利息：每 10 算力 +1，上限 5</span></h3><div class="shop" id="shop"></div></div>
     <div id="enemyArea" class="field-area"><div class="legend-enemy">▲ 敌方网络（品红/红色区域）</div><div class="grid" id="enemyGrid"></div></div>
     <div class="arena" id="arena" style="display:none"><div class="mid"></div><div id="tokens"></div></div>
-    <div class="field-area"><div class="legend-player">▼ 我方网络（青色区域） · 已部署 <span id="pop"></span> · 黄色虚线框就是可部署格</div><div class="grid" id="playerGrid"></div></div>
-    <details class="battle-log-box"><summary>⚔️ 战斗事件（点开查看）</summary><div class="log" id="battleLog"></div></details></div>
-  <div class="panel side-panel"><h3>🔍 单位详情</h3><div id="detail"></div>
+    <div id="playerArea" class="field-area"><div class="legend-player">▼ 我方网络（青色区域） · 已部署 <span id="pop"></span> · <span class="legend-player">■ 我方青色 + 我字徽标</span> <span class="legend-enemy">■ 敌方红色 + 敌字徽标</span></div><div class="grid" id="playerGrid"></div></div>
+    <div class="bench-section" id="benchSection">
+      <div class="bench-row"><span class="bench-label">📦 备战区</span><div class="bench" id="bench"></div><button id="btnAutoDeploy" class="primary">⚡ 一键部署全部</button></div>
+      <div class="economy-bar"><span>等级 Lv.<b id="level"></b> · 经验 <span id="xp"></span> · <span class="muted" id="xpHint"></span> <button id="btnXp">⬆️ 购买经验（4）</button></span><span class="gold-big">💰 <b id="gold"></b> 算力</span></div>
+    </div>
+    <details class="battle-log-box"><summary>⚔️ 战斗事件（点开查看）</summary><div class="log" id="battleLog"></div></details>
+    <details class="howto"><summary>玩法说明（点开）</summary><div class="muted">最简单三步：点商店卡购买 → 点「一键部署全部」（防御自动站前排、远程站后排），或点备战区单位再点带黄色虚线框的空格 → 点右侧「Battle」开始战斗。选中单位后点另一格可交换位置，右侧还有「部署到空位 / 收回备战区」按钮。相同单位同星满 3 张自动合成高一星（属性 ×1.8 / ×2.9）。人口 = 等级，上限 9。胜负伤害 = 3 + 存活单位数。战斗超时 60 秒按剩余生命判定。核心先归零者败。敌我区分：我方青色边框 + 我字徽标 + 绿色血条，敌方红色边框 + 敌字徽标 + 红色血条。<br/>声明：本游戏全部攻防均为虚构游戏机制，不连接真实目标，不执行真实网络攻击。职业立绘来源见 ASSETS.md。</div></details>
+  </div>
+  <div class="panel side-panel action-panel"><h3>🔍 单位详情</h3><div id="detail"></div>
     <h3>🧩 软件模块（库存）</h3><div id="modules"></div>
     <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button id="btnDeploy" class="primary">⬆️ 部署选中单位到空位</button><button id="btnReturn">⬇️ 收回选中单位到备战区</button><button id="btnSell" class="danger">出售选中单位</button></div>
-    <div class="muted" style="margin-top:8px">模块获得：开局各 1 个超频芯片/纳米装甲；每 3 回合补给 1 个（轮换）。每个单位最多 3 个模块。</div></div>
-</div>
-<div class="panel bottom-panel"><div class="bottom-head"><h3>🛒 黑市商店 <span class="muted">刷新 2 算力 · 利息：每 10 算力 +1，上限 5</span></h3>
-  <div style="display:flex;gap:6px;flex-wrap:wrap"><button id="btnRefresh">🔄 刷新商店（2）</button><button id="btnXp">⬆️ 购买经验（4 = +4 经验）</button><button id="btnAutoDeploy" class="primary">⚡ 一键部署全部备战单位</button><span class="muted" id="xpHint"></span></div></div>
-  <div class="bottom-row"><div class="shop-wrap"><div class="shop" id="shop"></div></div>
-  <div class="bench-wrap"><h3>📦 备战区（9 格）</h3><div class="bench" id="bench"></div></div></div>
-  <details class="howto"><summary>玩法说明（点开）</summary><div class="muted">最简单三步：点商店卡购买 → 点「一键部署全部备战单位」（防御自动站前排、远程站后排），或点备战区单位再点带黄色虚线框的空格 → 点「开始战斗」。选中单位后点另一格可交换位置，右侧还有「部署到空位 / 收回备战区」按钮。相同单位同星满 3 张自动合成高一星（属性 ×1.8 / ×2.9）。人口 = 等级，上限 9。胜负伤害 = 3 + 存活单位数。战斗超时 60 秒按剩余生命判定。核心先归零者败。敌我区分：我方青色边框 + 我字徽标 + 绿色血条，敌方红色边框 + 敌字徽标 + 红色血条。<br/>声明：本游戏全部攻防均为虚构游戏机制，不连接真实目标，不执行真实网络攻击。职业立绘来源见 ASSETS.md。</div></details>
+    <div class="muted" style="margin-top:8px">模块获得：开局各 1 个超频芯片/纳米装甲；每 3 回合补给 1 个（轮换）。每个单位最多 3 个模块。</div>
+    <div class="action-col"><button id="btnRefresh" class="refresh-btn">↻<br/>Refresh<br/><span>2 算力</span></button><button id="btnBattle" class="battle-btn">▶ Battle<br/><span>开始战斗</span></button></div></div>
 </div>`;
 const $ = (id: string) => document.getElementById(id)!;
 function setMsg(t: string) { msg = t; $('msg').textContent = t; }
@@ -132,7 +131,7 @@ function renderTop() {
   $('pop').textContent = `${deployedCount(game)} / ${game.level}`;
 }
 function renderLeft() {
-  $('synergies').innerHTML = synergyOf(game).map(s => `<div class="syn ${s.active ? 'active' : ''}"><span class="tag">${s.tag}</span> ${s.count} 个 · ${s.active ? `Lv${s.level} 已激活：${s.desc}` : s.desc}</div>`).join('');
+  $('synergies').innerHTML = synergyOf(game).map(s => `<div class="syn ${s.active ? 'active' : ''}"><span class="tag">◆ ${s.tag}</span> ${s.count} 个 · ${s.active ? `Lv${s.level} 已激活：${s.desc}` : s.desc}</div>`).join('');
   $('stats').innerHTML = `胜 ${game.stats.wins} · 负 ${game.stats.losses} · 累计击杀 ${game.stats.kills} · 累计伤害 ${Math.round(game.stats.damage)}<br/>连胜 ${game.winStreak}`;
   $('log').textContent = game.log.join('\n');
 }
@@ -152,8 +151,8 @@ function renderRight() {
 function renderShopBench() {
   const shopEl = $('shop'); shopEl.innerHTML = '';
   game.shop.forEach((def, i) => {
-    const c = document.createElement('button'); c.className = 'card';
-    c.innerHTML = `${unitImgTag(def.role, 'unit-img')}<span class="ic">${def.icon}</span> <b>${def.name}</b> ★1<br/><span class="cost">${def.cost} 算力 · 点击购买</span> · ${def.role}<br/><span class="muted">生命${def.hp} 攻击${def.atk} 攻速${def.aspd} 射程${def.range}</span><br/><span class="muted">技能：${def.skillName}</span><br/>${def.tags.map(t => `<span class="tagchip">${t}</span>`).join('')}`;
+    const c = document.createElement('button'); c.className = `card cost${def.cost}`;
+    c.innerHTML = `${unitImgTag(def.role, 'unit-img')}<span class="ic">${def.icon}</span> <b>${def.name}</b> ★1<br/>${def.tags.map(t => `<span class="tagchip">${t}</span>`).join('')}<br/><span class="muted">生命${def.hp} 攻击${def.atk}</span><span class="cost" style="float:right">${def.cost} 算力</span>`;
     c.onclick = () => { if (game.phase !== 'prep') return; setMsg(buyUnit(game, i)); renderAll(); }; shopEl.appendChild(c);
   });
   if (!game.shop.length) shopEl.innerHTML = '<div class="muted">商店已空，请刷新或进入下一回合。</div>';
@@ -165,9 +164,10 @@ function renderBoards() {
   for (let i = 0; i < 32; i++) { const c = document.createElement('div'); c.className = 'cell'; c.innerHTML = '<span class="muted">AI</span>'; eg.appendChild(c); }
   const pg = $('playerGrid'); pg.innerHTML = '';
   game.board.forEach((u, i) => pg.appendChild(cellEl(u, 'board', i)));
-  const arena = $('arena'); const enemyArea = $('enemyArea');
-  if (game.phase === 'battle') { arena.style.display = 'block'; enemyArea.style.display = 'none'; pg.style.display = 'none'; }
-  else { arena.style.display = 'none'; enemyArea.style.display = 'block'; pg.style.display = 'grid'; }
+  const arena = $('arena'); const enemyArea = $('enemyArea'); const playerArea = $('playerArea');
+  const shopSection = $('shopSection'); const benchSection = $('benchSection');
+  if (game.phase === 'battle') { arena.style.display = 'block'; enemyArea.style.display = 'none'; playerArea.style.display = 'none'; shopSection.style.display = 'none'; benchSection.style.display = 'none'; }
+  else { arena.style.display = 'none'; enemyArea.style.display = 'flex'; playerArea.style.display = 'flex'; shopSection.style.display = 'block'; benchSection.style.display = 'block'; }
 }
 function renderAll() { renderTop(); renderLeft(); renderRight(); renderShopBench(); renderBoards(); }
 function renderBattleTokens() {

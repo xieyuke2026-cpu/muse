@@ -1,11 +1,11 @@
 import { ROLE_IMAGE_DATA } from './imageData';
 
 const ROLE_KEY: Record<string, string> = {
-  '突袭程序': 'assault',
-  '防御节点': 'defense',
+  '渗透程序': 'assault',
+  '防御程序': 'defense',
   '算力核心': 'core',
-  '分析引擎': 'analysis',
-  '修复进程': 'repair',
+  '侦察引擎': 'analysis',
+  '修复程序': 'repair',
   '混沌程序': 'chaos',
 };
 export function unitImageUrl(role: string): string {

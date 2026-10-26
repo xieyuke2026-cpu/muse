@@ -22,37 +22,36 @@ const app = document.getElementById('app')!;
 app.innerHTML = `
 <div class="topbar">
   <h1>黑客世界 <span>HACKER WORLD</span></h1>
-  <div class="stat">准备阶段 · 第 <b id="round"></b> 回合</div>
-  <div class="stat">玩家核心 <span class="corebar"><i id="pcoreBar"></i></span> <b id="pcore"></b></div>
-  <div class="stat">AI 核心 <span class="corebar"><i id="ecoreBar"></i></span> <b id="ecore"></b></div>
+  <div class="stat">部署阶段 · 第 <b id="round"></b> 回合</div>
+  <div class="stat">我方核心 <span class="corebar"><i id="pcoreBar"></i></span> <b id="pcore"></b></div>
+  <div class="stat">敌方核心 <span class="corebar"><i id="ecoreBar"></i></span> <b id="ecore"></b></div>
   <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
     <button id="btnSave">💾 保存</button><button id="btnLoad">📂 读取</button><button id="btnRestart" class="danger">↻ 重新开始</button>
   </div>
 </div>
 <div class="notice" id="msg"></div>
 <div class="layout">
-  <div class="panel side-panel"><h3>🧬 协议羁绊（按部署动态计算）</h3><div id="synergies"></div>
-    <h3>📊 战斗统计</h3><div id="stats" class="muted"></div>
-    <h3>🖥️ 终端日志</h3><div class="log" id="log"></div></div>
+  <div class="panel side-panel"><h3>协议组合（按部署动态计算）</h3><div id="synergies"></div>
+    <h3>入侵统计</h3><div id="stats" class="muted"></div>
+    <h3>入侵记录</h3><div class="log" id="log"></div></div>
   <div class="panel center-panel">
     <div id="phaseLabel" class="notice"></div>
     <div class="step-hint" id="stepHint"></div>
-    <div class="shop-section" id="shopSection"><div class="shop-head"><h3>🛒 黑市商店 <span class="muted">点卡即买 · 利息：每 10 算力 +1，上限 5</span></h3><button id="btnLock" class="lock-btn" aria-pressed="false">🔓 锁定商店</button></div><div class="shop" id="shop"></div><div class="odds-bar" id="oddsBar" aria-label="商店费用概率"></div></div>
+    <div class="shop-section" id="shopSection"><div class="shop-head"><h3>暗网黑市 <span class="muted">点卡即招募 · 算力收益：每 10 算力 +1，上限 5</span></h3><button id="btnLock" class="lock-btn" aria-pressed="false">🔓 锁定商店</button></div><div class="shop" id="shop"></div><div class="odds-bar" id="oddsBar" aria-label="商店费用概率"></div></div>
     <div id="enemyArea" class="field-area"><div class="legend-enemy">▲ 敌方网络（品红/红色区域）</div><div class="grid" id="enemyGrid"></div></div>
     <div class="arena" id="arena" style="display:none"><div class="mid"></div><div id="fxLayer"></div><div id="tokens"></div><div class="battle-controls"><button id="btnSpeed">⏩ 速度 1×</button></div><div class="last-skill" id="lastSkill"></div></div>
     <div id="playerArea" class="field-area"><div class="legend-player">▼ 我方网络（青色区域） · 已部署 <span id="pop"></span> · <span class="legend-player">■ 我方青色 + 我字徽标</span> <span class="legend-enemy">■ 敌方红色 + 敌字徽标</span></div><div class="grid" id="playerGrid"></div></div>
     <div class="bench-section" id="benchSection">
-      <div class="bench-row"><span class="bench-label">📦 备战区</span><div class="bench" id="bench"></div><button id="btnAutoDeploy" class="primary">⚡ 一键部署全部</button></div>
-      <div class="economy-bar"><span>等级 Lv.<b id="level"></b> · 经验 <span id="xp"></span> · <span class="muted" id="xpHint"></span> <button id="btnXp">⬆️ 购买经验（4）</button></span><span class="gold-big">💰 <b id="gold"></b> 算力</span></div>
+      <div class="bench-row"><span class="bench-label">待命程序</span><div class="bench" id="bench"></div><button id="btnAutoDeploy" class="primary">⚡ 一键部署全部</button></div>
+      <div class="economy-bar"><span>指挥等级 Lv.<b id="level"></b> · 经验 <span id="xp"></span> · <span class="muted" id="xpHint"></span> <button id="btnXp">⬆️ 购买经验（4）</button></span><span class="gold-big">💰 <b id="gold"></b> 算力</span></div>
     </div>
-    <details class="battle-log-box"><summary>⚔️ 战斗事件（点开查看）</summary><div class="log" id="battleLog"></div></details>
-    <details class="howto"><summary>玩法说明（点开）</summary><div class="muted">最简单三步：点商店卡购买 → 点「一键部署全部」（防御自动站前排、远程站后排），或点备战区单位再点带黄色虚线框的空格 → 点右侧「Battle」开始战斗。选中单位后点另一格可交换位置，右侧还有「部署到空位 / 收回备战区」按钮。相同单位同星满 3 张自动合成高一星（属性 ×1.8 / ×2.9）。人口 = 等级，上限 9。胜负伤害 = 3 + 存活单位数。战斗超时 60 秒按剩余生命判定。核心先归零者败。敌我区分：我方青色边框 + 我字徽标 + 绿色血条，敌方红色边框 + 敌字徽标 + 红色血条。<br/>声明：本游戏全部攻防均为虚构游戏机制，不连接真实目标，不执行真实网络攻击。职业立绘来源见 ASSETS.md。</div></details>
+    <details class="howto"><summary>玩法说明（点开）</summary><div class="muted">你是黑客指挥官：从暗网黑市招募程序，部署到我方网络，组合协议加成，然后发起入侵，击破敌方核心。最简单三步：点商店卡招募 → 点「一键部署全部」（防御程序自动站前排、远程站后排），或点待命程序再点带黄色虚线框的空格 → 点右侧「发起入侵」。选中程序后点另一格可交换位置，右侧还有「部署到空位 / 收回待命区」按钮，也可把程序拖到「卸载」按钮回收算力。相同程序同星满 3 个自动融合升级（属性 ×1.8 / ×2.9）。人口 = 指挥等级，上限 9。胜负伤害 = 3 + 存活程序数。入侵超时 60 秒按剩余生命判定。核心先归零者败。敌我区分：我方青色边框 + 我字徽标 + 绿色血条，敌方红色边框 + 敌字徽标 + 红色血条。<br/>声明：本游戏全部攻防均为虚构游戏机制，不连接真实目标，不执行真实网络攻击。程序立绘来源见 ASSETS.md。</div></details>
   </div>
-  <div class="panel side-panel action-panel"><h3>🔍 单位详情</h3><div id="detail"></div>
-    <h3>🧩 软件模块（库存）</h3><div id="modules"></div>
-    <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button id="btnDeploy" class="primary">⬆️ 部署选中单位到空位</button><button id="btnReturn">⬇️ 收回选中单位到备战区</button><button id="btnSell" class="danger">出售选中单位</button></div>
-    <div class="muted" style="margin-top:8px">模块获得：开局各 1 个超频芯片/纳米装甲；每 3 回合补给 1 个（轮换）。每个单位最多 3 个模块。</div>
-    <div class="action-col"><button id="btnRefresh" class="refresh-btn">↻<br/>Refresh<br/><span>2 算力</span></button><button id="btnBattle" class="battle-btn">▶ Battle<br/><span>开始战斗</span></button></div></div>
+  <div class="panel side-panel action-panel"><h3>程序详情</h3><div id="detail"></div>
+    <h3>软件模块（库存）</h3><div id="modules"></div>
+    <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button id="btnDeploy" class="primary">⬆️ 部署选中程序到空位</button><button id="btnReturn">⬇️ 收回选中程序到待命区</button><button id="btnSell" class="danger">卸载选中程序</button></div>
+    <div class="muted" style="margin-top:8px">模块获得：开局各 1 个超频芯片/纳米装甲；每 3 回合补给 1 个（轮换）。每个程序最多 3 个模块。</div>
+    <div class="action-col"><button id="btnRefresh" class="refresh-btn">↻<br/>刷新<br/><span>2 算力</span></button><button id="btnBattle" class="battle-btn">▶ 发起入侵<br/><span>开始入侵行动</span></button></div></div>
 </div>`;
 const $ = (id: string) => document.getElementById(id)!;
 function setMsg(t: string) { msg = t; $('msg').textContent = t; }
@@ -89,7 +88,7 @@ function cellEl(u: OwnedUnit | null, where: 'board' | 'bench', idx: number): HTM
   }
   else d.innerHTML = isTarget ? '<span style="color:#facc15">▶ 可放这里</span>' : '<span class="muted">空</span>';
   d.tabIndex = 0; d.setAttribute('role', 'button');
-  d.setAttribute('aria-label', u ? `${getUnit(u.defId).name} ${u.star}星，${where === 'board' ? '部署区' : '备战区'}第 ${idx + 1} 格` : `${where === 'board' ? '部署区' : '备战区'}空格 ${idx + 1}`);
+  d.setAttribute('aria-label', u ? `${getUnit(u.defId).name} ${u.star}星，${where === 'board' ? '部署区' : '待命区'}第 ${idx + 1} 格` : `${where === 'board' ? '部署区' : '待命区'}空格 ${idx + 1}`);
   d.onclick = () => onCellClick(where, idx);
   d.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCellClick(where, idx); } };
   d.ondragover = (e) => { if (game.phase === 'prep' && dragData) { e.preventDefault(); d.classList.add('drag-over'); } };
@@ -107,28 +106,28 @@ function cellEl(u: OwnedUnit | null, where: 'board' | 'bench', idx: number): HTM
 }
 function preferredBoardSlot(def: ReturnType<typeof getUnit>): number {
   // 防御放前两排，远程放后两排，其他放中排；返回第一个空位
-  const rows = def.role === '防御节点' ? [0, 1, 2, 3] : def.range >= 3 ? [3, 2, 1, 0] : [1, 2, 0, 3];
+  const rows = def.role === '防御程序' ? [0, 1, 2, 3] : def.range >= 3 ? [3, 2, 1, 0] : [1, 2, 0, 3];
   for (const r of rows) for (let c = 0; c < 8; c++) { const idx = r * 8 + c; if (!game.board[idx]) return idx; }
   return -1;
 }
 function deploySelected(): string {
-  const sel = findSelected(); if (!sel) return '请先选中一个备战区单位';
-  if (sel.where === 'board') return '该单位已在场上';
+  const sel = findSelected(); if (!sel) return '请先选中一个待命区程序';
+  if (sel.where === 'board') return '该程序已在场上';
   const slot = preferredBoardSlot(getUnit(sel.u.defId)); if (slot < 0) return '部署区已满';
   const r = moveUnit(game, 'bench', sel.idx, 'board', slot);
   if (r === '移动完成') { game.selectedUid = sel.u.uid; game.selectedWhere = 'board'; }
   return r;
 }
 function returnSelected(): string {
-  const sel = findSelected(); if (!sel) return '请先选中一个单位';
-  if (sel.where === 'bench') return '该单位已在备战区';
-  const benchIdx = game.bench.findIndex(v => !v); if (benchIdx < 0) return '备战区已满';
+  const sel = findSelected(); if (!sel) return '请先选中一个程序';
+  if (sel.where === 'bench') return '该程序已在待命区';
+  const benchIdx = game.bench.findIndex(v => !v); if (benchIdx < 0) return '待命区已满';
   return moveUnit(game, 'board', sel.idx, 'bench', benchIdx);
 }
 function autoDeployAll(): string {
-  if (game.phase !== 'prep') return '战斗中无法部署';
+  if (game.phase !== 'prep') return '入侵中无法部署';
   const order = [...game.bench].map((u, idx) => ({ u, idx })).filter(e => e.u)
-    .sort((a, b) => (getUnit(a.u!.defId).role === '防御节点' ? 0 : 1) - (getUnit(b.u!.defId).role === '防御节点' ? 0 : 1));
+    .sort((a, b) => (getUnit(a.u!.defId).role === '防御程序' ? 0 : 1) - (getUnit(b.u!.defId).role === '防御程序' ? 0 : 1));
   let placed = 0;
   for (const e of order) {
     // 注意：移动后备战区下标会变，重新按 uid 定位
@@ -136,21 +135,21 @@ function autoDeployAll(): string {
     const slot = preferredBoardSlot(getUnit(e.u!.defId)); if (slot < 0) break;
     const r = moveUnit(game, 'bench', cur, 'board', slot); if (r === '移动完成') placed++; else break;
   }
-  return placed ? `已自动部署 ${placed} 个单位（防御在前、远程在后）` : '没有可部署的单位或人口已满';
+  return placed ? `已自动部署 ${placed} 个程序（防御程序在前、远程在后）` : '没有可部署的程序或人口已满';
 }
 function renderTop() {
   $('pcore').textContent = `${game.playerCore}`; ($('pcoreBar') as HTMLElement).style.width = `${Math.max(0, game.playerCore)}%`;
   $('ecore').textContent = `${game.enemyCore}`; ($('ecoreBar') as HTMLElement).style.width = `${Math.max(0, game.enemyCore)}%`;
   $('round').textContent = `${game.round}`; $('gold').textContent = `${game.gold}`; $('level').textContent = `${game.level}`;
   $('xp').textContent = game.level >= 9 ? 'MAX' : `${game.xp} / ${game.xp + xpToNext(game.level, game.xp)}（还差 ${xpToNext(game.level, game.xp)}）`;
-  $('phaseLabel').textContent = game.phase === 'battle' ? '⚔️ 战斗进行中……（自动攻防，由战斗引擎实时计算）' : game.phase === 'gameover' ? '🏁 对局结束' : game.lastResult;
+  $('phaseLabel').textContent = game.phase === 'battle' ? '入侵进行中……（自动攻防，由战斗引擎实时计算）' : game.phase === 'gameover' ? '🏁 对局结束' : game.lastResult;
   const stepEl = $('stepHint');
-  if (game.phase === 'battle') stepEl.textContent = '⚔️ 战斗进行中：青色是我方，红色是敌方，看血条颜色和左上角的 我 / 敌 徽标就能分清。';
+  if (game.phase === 'battle') stepEl.textContent = '入侵进行中：青色是我方，红色是敌方，看血条颜色和左上角的 我 / 敌 徽标就能分清。';
   else if (game.phase === 'gameover') stepEl.textContent = '🏁 对局结束：点右上角「重新开始」再来一局。';
-  else if (deployedCount(game) === 0 && benchCount(game) === 0) stepEl.textContent = '① 先在下面商店点一张卡购买（点卡就是买）';
-  else if (deployedCount(game) === 0) stepEl.textContent = '② 点备战区一个单位，再点青色部署区里带黄色虚线框的空格；或者点右侧「部署选中单位到空位」，也可以点「一键部署全部备战单位」。';
-  else if (benchCount(game) > 0 && deployedCount(game) < game.level) stepEl.textContent = '③ 还可以继续部署（人口未满），或者直接点「开始战斗」。';
-  else stepEl.textContent = '④ 点右上角「开始战斗」开打。';
+  else if (deployedCount(game) === 0 && benchCount(game) === 0) stepEl.textContent = '① 先在暗网黑市点一张卡招募（点卡就是招募）';
+  else if (deployedCount(game) === 0) stepEl.textContent = '② 点待命区一个程序，再点青色部署区里带黄色虚线框的空格；或者点右侧「部署选中程序到空位」，也可以点「一键部署全部」。';
+  else if (benchCount(game) > 0 && deployedCount(game) < game.level) stepEl.textContent = '③ 还可以继续部署（人口未满），或者直接点「发起入侵」。';
+  else stepEl.textContent = '④ 点右侧「发起入侵」开打。';
   $('msg').textContent = msg;
   ($('btnBattle') as HTMLButtonElement).disabled = game.phase !== 'prep' || deployedCount(game) === 0;
   ($('btnRefresh') as HTMLButtonElement).disabled = game.phase !== 'prep' || game.gold < 2;
@@ -164,29 +163,29 @@ function renderLeft() {
     const b = document.createElement('button');
     b.className = 'syn' + (s.active ? ' active' : '') + (trackedTag === s.tag ? ' tracked' : '');
     b.setAttribute('aria-pressed', trackedTag === s.tag ? 'true' : 'false');
-    b.title = trackedTag === s.tag ? '已追踪该羁绊，再点取消' : '点此追踪该羁绊，高亮商店与场上同羁绊单位';
+    b.title = trackedTag === s.tag ? '已追踪该协议，再点取消' : '点此追踪该协议，高亮商店与场上同协议程序';
     b.innerHTML = `<span class="tag">◆ ${s.tag}</span> ${s.count} 个 · ${s.active ? `Lv${s.level} 已激活：${s.desc}` : s.desc}`;
-    b.onclick = () => { trackedTag = trackedTag === s.tag ? null : s.tag; setMsg(trackedTag ? `已追踪羁绊「${trackedTag}」` : '已取消羁绊追踪'); renderAll(); };
+    b.onclick = () => { trackedTag = trackedTag === s.tag ? null : s.tag; setMsg(trackedTag ? `已追踪协议「${trackedTag}」` : '已取消协议追踪'); renderAll(); };
     synEl.appendChild(b);
   }
-  $('stats').innerHTML = `胜 ${game.stats.wins} · 负 ${game.stats.losses} · 累计击杀 ${game.stats.kills} · 累计伤害 ${Math.round(game.stats.damage)}<br/>连胜 ${game.winStreak}`;
+  $('stats').innerHTML = `胜 ${game.stats.wins} · 负 ${game.stats.losses} · 累计击破 ${game.stats.kills} · 累计伤害 ${Math.round(game.stats.damage)}<br/>连胜 ${game.winStreak}`;
   $('log').textContent = game.log.join('\n');
 }
 function previewHtml(def: ReturnType<typeof getUnit>): string {
   return `<div>${unitImgTag(def.role, 'unit-img big')}<span style="font-size:22px">${def.icon} <b>${def.name}</b> ★1 · ${def.cost}费</span></div>
   <div><span class="tagchip">${def.role}</span>${def.tags.map((t: string) => `<span class="tagchip">${t}</span>`).join('')}</div>
-  <div style="margin-top:6px;font-size:13px;line-height:1.7">生命 ${def.hp} · 攻击 ${def.atk} · 攻速 ${def.aspd}/秒 · 射程 ${def.range} 格 · 护甲 ${def.armor}<br/>技能「${def.skillName}」：${def.skill.desc}<br/><span class="muted">悬停预览（未选中），点商店卡即购买</span></div>`;
+  <div style="margin-top:6px;font-size:13px;line-height:1.7">生命 ${def.hp} · 攻击 ${def.atk} · 攻速 ${def.aspd}/秒 · 射程 ${def.range} 格 · 护甲 ${def.armor}<br/>技能「${def.skillName}」：${def.skill.desc}<br/><span class="muted">悬停预览（未选中），点商店卡即招募</span></div>`;
 }
 function renderRight() {
   const sel = findSelected(); const detail = $('detail');
   if (!sel && previewDef) { detail.innerHTML = previewHtml(previewDef); }
-  else if (!sel) { detail.innerHTML = '<div class="muted">点击备战区或部署区的一个单位查看详情；把鼠标移到商店卡上可预览。</div>'; }
+  else if (!sel) { detail.innerHTML = '<div class="muted">点击待命区或部署区的一个程序查看详情；把鼠标移到商店卡上可预览。</div>'; }
   else {
     const def = getUnit(sel.u.defId); const m = starMultiplier(sel.u.star);
     detail.innerHTML = `<div>${unitImgTag(def.role, 'unit-img big')}<span style="font-size:28px">${def.icon} <b>${def.name}</b> ★${sel.u.star} · ${def.cost}费</span></div>
     <div><span class="tagchip">${def.role}</span>${def.tags.map((t: string) => `<span class="tagchip">${t}</span>`).join('')}</div>
     <div style="margin-top:6px;font-size:13px;line-height:1.7">生命 ${Math.round(def.hp * m)} · 攻击 ${Math.round(def.atk * m)} · 攻速 ${def.aspd}/秒 · 射程 ${def.range} 格 · 护甲 ${def.armor}<br/>
-    技能「${def.skillName}」：${def.skill.desc}<br/>装备：${sel.u.items.length ? sel.u.items.map(i => MODULES.find(x => x.id === i)?.name).join('、') : '无'}<br/>出售价：${sellPrice(def, sel.u.star)} 算力</div>`;
+    技能「${def.skillName}」：${def.skill.desc}<br/>模块：${sel.u.items.length ? sel.u.items.map(i => MODULES.find(x => x.id === i)?.name).join('、') : '无'}<br/>卸载回收：${sellPrice(def, sel.u.star)} 算力</div>`;
   }
   $('modules').innerHTML = MODULES.map(md => `<button data-m="${md.id}" style="margin:2px">${md.icon} ${md.name}（${game.modules[md.id] ?? 0}）<br/><span class="muted">${md.desc}</span></button>`).join('');
   $('modules').querySelectorAll('button').forEach(b => b.onclick = () => { setMsg(equipModule(game, b.dataset.m!)); renderAll(); });
@@ -197,7 +196,7 @@ function renderShopBench() {
     const c = document.createElement('button');
     c.className = `card cost${def.cost}` + (trackedTag && def.tags.includes(trackedTag as never) ? ' tracked' : '');
     c.title = `技能「${def.skillName}」：${def.skill.desc}`;
-    c.innerHTML = `${unitImgTag(def.role, 'unit-img')}<span class="ic">${def.icon}</span> <b>${def.name}</b> ★1<br/>${def.tags.map(t => `<span class="tagchip">${t}</span>`).join('')}<br/><span class="muted">生命${def.hp} 攻击${def.atk}</span><span class="cost" style="float:right">${def.cost} 算力</span>`;
+    c.innerHTML = `<div class="card-head">${unitImgTag(def.role, 'unit-img')}<span class="ic">${def.icon}</span><span class="card-name"><b>${def.name}</b><span class="card-role">${def.role} · ★1</span></span><span class="cost">${def.cost} 算力</span></div><div class="card-tags">${def.tags.map(t => `<span class="tagchip">${t}</span>`).join('')}</div><div class="card-stats"><span>生命 ${def.hp}</span><span>攻击 ${def.atk}</span><span>技能 ${def.skillName}</span></div>`;
     c.onmouseenter = () => { previewDef = def; renderRight(); };
     c.onmouseleave = () => { previewDef = null; renderRight(); };
     c.onclick = () => {
@@ -259,10 +258,9 @@ function renderBattleTokens() {
     d.innerHTML = `<span class="side-badge">${badge}</span>${unitImgTag(u.role, 'unit-img small')}<div class="ic">${u.icon}</div><div class="nm">${u.name} ★${u.star}</div><div class="hp"><i style="width:${u.hpPct * 100}%"></i></div>${shieldBar}<div class="en"><i style="width:${u.energy}%"></i></div>`;
     box.appendChild(d);
   }
-  const bl = $('battleLog'); const newEvents = battle.events.slice(lastEventIdx); lastEventIdx = battle.events.length;
+  const newEvents = battle.events.slice(lastEventIdx); lastEventIdx = battle.events.length;
   for (const e of newEvents) if (e.kind === 'skill') spawnSkillFx(e);
-  if (newEvents.length) bl.textContent = [...newEvents].reverse().map(e => `[${e.t.toFixed(1)}s] ${e.text}`).join('\n') + '\n' + bl.textContent;
-  $('phaseLabel').textContent = `⚔️ 战斗进行中 ${battle.time.toFixed(1)}s · 玩家存活 ${battle.alive('player').length} · AI 存活 ${battle.alive('enemy').length}`;
+  $('phaseLabel').textContent = `入侵进行中 ${battle.time.toFixed(1)}s · 我方存活 ${battle.alive('player').length} · 敌方存活 ${battle.alive('enemy').length}`;
 }
 function endBattle() {
   if (!battle) return; const b = battle; battle = null;
@@ -273,24 +271,24 @@ function endBattle() {
   const pKills = b.units.filter(u => u.side === 'player').reduce((s, u) => s + u.kills, 0);
   const pDmg = b.units.filter(u => u.side === 'player').reduce((s, u) => s + u.damageDealt, 0);
   game.stats.kills += pKills; game.stats.damage += pDmg;
-  if (won) { game.stats.wins++; game.winStreak++; game.enemyCore = Math.max(0, game.enemyCore - dmg); game.lastResult = `✅ 第 ${game.round} 回合获胜！对 AI 核心造成 ${dmg} 点伤害（3 + ${survivors} 存活单位）。`; }
-  else { game.stats.losses++; game.winStreak = 0; game.playerCore = Math.max(0, game.playerCore - dmg); game.lastResult = `❌ 第 ${game.round} 回合失败！你的核心受到 ${dmg} 点伤害（3 + ${survivors} 存活单位）。`; }
+  if (won) { game.stats.wins++; game.winStreak++; game.enemyCore = Math.max(0, game.enemyCore - dmg); game.lastResult = `✅ 第 ${game.round} 回合获胜！对敌方核心造成 ${dmg} 点伤害（3 + ${survivors} 存活程序）。`; }
+  else { game.stats.losses++; game.winStreak = 0; game.playerCore = Math.max(0, game.playerCore - dmg); game.lastResult = `❌ 第 ${game.round} 回合失败！我方核心受到 ${dmg} 点伤害（3 + ${survivors} 存活程序）。`; }
   addLog(game, game.lastResult);
   for (const e of b.events.slice(-12)) addLog(game, e.text);
   if (game.playerCore <= 0) { game.phase = 'gameover'; game.lastResult = '🏁 对局结束：你的核心已被击破。点击「重新开始」再来一局。'; }
-  else if (game.enemyCore <= 0) { game.phase = 'gameover'; game.lastResult = '🏆 对局结束：你击破了 AI 核心，赢得黑客世界！点击「重新开始」再来一局。'; }
+  else if (game.enemyCore <= 0) { game.phase = 'gameover'; game.lastResult = '🏆 对局结束：你击破了敌方核心，赢得黑客世界！点击「重新开始」再来一局。'; }
   else { applyRoundIncome(game, won); startNextRound(game); game.phase = 'prep'; }
   saveGame(game); renderAll();
 }
 function startBattle() {
-  if (game.phase !== 'prep' || deployedCount(game) === 0) { setMsg('请先部署至少 1 个单位'); return; }
+  if (game.phase !== 'prep' || deployedCount(game) === 0) { setMsg('请先部署至少 1 个程序'); return; }
   const aiTeam = buildAiTeam(game.round, Math.random);
   const aiPlaced = placeAiTeam(aiTeam);
   const playerInputs: BattleInputUnit[] = []; const enemyInputs: BattleInputUnit[] = [];
   game.board.forEach((u, i) => { if (u) playerInputs.push({ unit: u, x: (i % BOARD_W) + 0.5, y: 4 + Math.floor(i / BOARD_W) + 0.5, side: 'player' }); });
   aiPlaced.forEach(p => enemyInputs.push({ unit: p.unit, x: p.x + 0.5, y: p.y + 0.5, side: 'enemy' }));
-  battle = new Battle(playerInputs, enemyInputs, Math.random); lastEventIdx = 0; fxCount = 0; $('battleLog').textContent = ''; $('lastSkill').textContent = '';
-  game.phase = 'battle'; addLog(game, `第 ${game.round} 回合战斗开始：AI 部署 ${aiTeam.length} 单位`);
+  battle = new Battle(playerInputs, enemyInputs, Math.random); lastEventIdx = 0; fxCount = 0; $('lastSkill').textContent = '';
+  game.phase = 'battle'; addLog(game, `第 ${game.round} 回合入侵开始：敌方部署 ${aiTeam.length} 程序`);
   renderAll(); renderBattleTokens(); startBattleTimer();
 }
 function startBattleTimer() {

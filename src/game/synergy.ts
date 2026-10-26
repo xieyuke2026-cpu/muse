@@ -2,11 +2,11 @@ import type { OwnedUnit, SynergyDef, Tag } from './types';
 import { getUnit } from './units';
 
 export const SYNERGIES: SynergyDef[] = [
-  { tag: '量子集群', desc: '强化友方算力与技能频率', levels: [
+  { tag: '量子密钥', desc: '密钥分发加速技能循环', levels: [
     { count: 2, desc: '攻速 +10%，能量获取 +20%' },
     { count: 4, desc: '攻速 +20%，能量获取 +40%' },
     { count: 6, desc: '攻速 +35%，能量获取 +70%' } ] },
-  { tag: '零信任', desc: '提高友方防御和抗干扰能力', levels: [
+  { tag: '零信任架构', desc: '零信任验证强化防御与护盾', levels: [
     { count: 2, desc: '护甲 +12，开局护盾 120' },
     { count: 4, desc: '护甲 +24，开局护盾 240' },
     { count: 6, desc: '护甲 +40，开局护盾 420' } ] },
@@ -35,8 +35,8 @@ export function synergyBonus(states: SynergyState[]): SynergyBonus {
   const b: SynergyBonus = { aspdPct: 0, energyPct: 0, armor: 0, startShield: 0, hpPct: 0, atkPct: 0, crit: 0, chaosTier: 0 };
   for (const s of states) {
     if (!s.active) continue;
-    if (s.tag === '量子集群') { b.aspdPct = [0, .10, .20, .35][s.level]; b.energyPct = [0, .20, .40, .70][s.level]; }
-    if (s.tag === '零信任') { b.armor = [0, 12, 24, 40][s.level]; b.startShield = [0, 120, 240, 420][s.level]; }
+    if (s.tag === '量子密钥') { b.aspdPct = [0, .10, .20, .35][s.level]; b.energyPct = [0, .20, .40, .70][s.level]; }
+    if (s.tag === '零信任架构') { b.armor = [0, 12, 24, 40][s.level]; b.startShield = [0, 120, 240, 420][s.level]; }
     if (s.tag === '分布式网络') { b.hpPct = [0, .08, .16, .26][s.level]; b.atkPct = b.hpPct; }
     if (s.tag === '混沌协议') { b.crit = [0, .15, .30, .50][s.level]; b.chaosTier = s.level; }
   }

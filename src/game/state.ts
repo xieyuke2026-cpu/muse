@@ -23,7 +23,7 @@ export function createGame(seed = Date.now() % 100000): GameState {
     gold: 30, xp: 0, level: 1, round: 1, playerCore: 100, enemyCore: 100, phase: 'prep',
     board: Array(BOARD_W * BOARD_H).fill(null), bench: Array(9).fill(null), shop: [], shopLocked: false, pool,
     modules: { chip: 1, armor: 1, healcore: 0, chaoscore: 0 }, selectedUid: null, selectedWhere: null,
-    log: ['系统初始化完成。欢迎来到黑客世界。'], lastResult: '备战阶段：购买单位并部署，然后点击「开始战斗」。',
+    log: ['渗透终端已上线。核心完整度 100%，等待部署指令。'], lastResult: '部署阶段：从暗网黑市招募程序并部署，然后发起入侵。',
     winStreak: 0, stats: { wins: 0, losses: 0, kills: 0, damage: 0 }, seed,
   };
   s.shop = rollShop(s.level, s.pool, mulberryFromSeed(seed));
@@ -46,33 +46,33 @@ export function refreshShop(s: GameState): boolean {
   if (s.gold < 2) return false;
   // 旧商店未购买的单位返还卡池（购买过的已在买入时扣池，不重复返还）
   for (const d of s.shop) returnToPool(s.pool, d.id, 1);
-  s.gold -= 2; s.shop = rollShop(s.level, s.pool, Math.random); addLog(s, '刷新黑市商店（-2 算力）'); return true;
+  s.gold -= 2; s.shop = rollShop(s.level, s.pool, Math.random); addLog(s, '刷新暗网黑市（-2 算力）'); return true;
 }
 export function buyUnit(s: GameState, index: number): string {
   const def = s.shop[index]; if (!def) return '商店格子为空';
   if (s.gold < def.cost) return '算力不足';
-  const benchIdx = s.bench.findIndex(v => !v); if (benchIdx < 0) return '备战区已满（9 格）';
+  const benchIdx = s.bench.findIndex(v => !v); if (benchIdx < 0) return '待命区已满（9 格）';
   s.gold -= def.cost; s.bench[benchIdx] = { uid: newUid(), defId: def.id, star: 1, items: [] }; s.shop[index] = null as unknown as UnitDef;
   // 商店格子买走后置空，不立即补货（与刷新逻辑一致）
   s.shop = s.shop.filter(Boolean) as UnitDef[]; // 保持剩余卡片可见；下一轮刷新补满
   // 注意：filter 会改变格子数，UI 按剩余卡片渲染即可
-  addLog(s, `购买 ${def.name}（-${def.cost} 算力）`);
-  tryMerge(s); return `已购买 ${def.name}`;
+  addLog(s, `招募 ${def.name}（-${def.cost} 算力）`);
+  tryMerge(s); return `已招募 ${def.name}`;
 }
 export function sellUnit(s: GameState): string {
-  const { selectedUid, selectedWhere } = s; if (!selectedUid || !selectedWhere) return '请先选中一个单位';
+  const { selectedUid, selectedWhere } = s; if (!selectedUid || !selectedWhere) return '请先选中一个程序';
   const arr = selectedWhere === 'board' ? s.board : s.bench;
-  const idx = arr.findIndex(u => u?.uid === selectedUid); if (idx < 0) return '未找到该单位';
+  const idx = arr.findIndex(u => u?.uid === selectedUid); if (idx < 0) return '未找到该程序';
   const u = arr[idx]!; const def = getUnit(u.defId); const price = sellPrice(def, u.star);
   s.gold += price; returnToPool(s.pool, u.defId, u.star === 1 ? 1 : u.star === 2 ? 3 : 9);
   arr[idx] = null; s.selectedUid = null; s.selectedWhere = null;
-  addLog(s, `出售 ${def.name} ★${u.star}（+${price} 算力）`); return `已出售，返还 ${price} 算力`;
+  addLog(s, `卸载 ${def.name} ★${u.star}（+${price} 算力）`); return `已卸载，回收 ${price} 算力`;
 }
 export function moveUnit(s: GameState, fromWhere: 'board' | 'bench', fromIdx: number, toWhere: 'board' | 'bench', toIdx: number): string {
   const fromArr = fromWhere === 'board' ? s.board : s.bench;
   const toArr = toWhere === 'board' ? s.board : s.bench;
   const u = fromArr[fromIdx]; if (!u) return '源格子为空';
-  if (toWhere === 'board' && fromWhere !== 'board' && !toArr[toIdx] && deployedCount(s) >= s.level) return `人口已满：等级 ${s.level} 只能部署 ${s.level} 个单位`;
+  if (toWhere === 'board' && fromWhere !== 'board' && !toArr[toIdx] && deployedCount(s) >= s.level) return `人口已满：等级 ${s.level} 只能部署 ${s.level} 个程序`;
   const target = toArr[toIdx]; toArr[toIdx] = u; fromArr[fromIdx] = target ?? null;
   tryMerge(s); return '移动完成';
 }
@@ -80,7 +80,7 @@ export function buyXp(s: GameState): string {
   if (s.level >= MAX_LEVEL) return '已达到最高等级 9';
   if (s.gold < 4) return '算力不足（需要 4）';
   s.gold -= 4; s.xp += 4; addLog(s, '购买经验 +4（-4 算力）');
-  while (s.level < MAX_LEVEL && s.xp >= XP_TABLE[s.level]) { s.level++; addLog(s, `升级！当前等级 ${s.level}，可部署 ${s.level} 个单位`); }
+  while (s.level < MAX_LEVEL && s.xp >= XP_TABLE[s.level]) { s.level++; addLog(s, `升级！当前等级 ${s.level}，可部署 ${s.level} 个程序`); }
   return `经验 +4，当前等级 ${s.level}`;
 }
 export function tryMerge(s: GameState) {
@@ -99,31 +99,31 @@ export function tryMerge(s: GameState) {
         const items = [...new Set(trio.flatMap(e => e.u.items))].slice(0, 3);
         keeper.u.star = (star + 1) as 2 | 3; keeper.u.items = items;
         const arr = keeper.where === 'board' ? s.board : s.bench; arr[keeper.idx] = keeper.u;
-        addLog(s, `合成！${getUnit(defId).name} 升至 ★${star + 1}`);
+        addLog(s, `融合升级！${getUnit(defId).name} 升至 ★${star + 1}`);
       }
     }
   }
 }
 export function equipModule(s: GameState, moduleId: string): string {
   if ((s.modules[moduleId] ?? 0) <= 0) return '该模块库存不足（胜利后有概率获得）';
-  const { selectedUid, selectedWhere } = s; if (!selectedUid || !selectedWhere) return '请先选中一个单位';
+  const { selectedUid, selectedWhere } = s; if (!selectedUid || !selectedWhere) return '请先选中一个程序';
   const arr = selectedWhere === 'board' ? s.board : s.bench;
-  const u = arr.find(v => v?.uid === selectedUid); if (!u) return '未找到该单位';
-  if (u.items.includes(moduleId)) return '该单位已装备此模块';
+  const u = arr.find(v => v?.uid === selectedUid); if (!u) return '未找到该程序';
+  if (u.items.includes(moduleId)) return '该程序已加载此模块';
   if (u.items.length >= 3) return '每个单位最多装备 3 个模块';
-  u.items.push(moduleId); s.modules[moduleId]--; addLog(s, `为 ${getUnit(u.defId).name} 装备模块`); return '装备成功';
+  u.items.push(moduleId); s.modules[moduleId]--; addLog(s, `为 ${getUnit(u.defId).name} 加载模块`); return '加载成功';
 }
 export function applyRoundIncome(s: GameState, won: boolean) {
   const interest = Math.min(5, Math.floor(s.gold / 10));
   const streakBonus = won && s.winStreak >= 2 ? 1 : 0;
   const income = 5 + interest + streakBonus;
-  s.gold += income; addLog(s, `回合结算：基础收入 5 + 利息 ${interest}${streakBonus ? ' + 连胜 1' : ''} = +${income} 算力`);
+  s.gold += income; addLog(s, `回合结算：基础收入 5 + 算力收益 ${interest}${streakBonus ? ' + 连胜 1' : ''} = +${income} 算力`);
 }
 export function startNextRound(s: GameState) {
   s.round++; s.phase = 'prep';
   if (!s.shopLocked) s.shop = rollShop(s.level, s.pool, Math.random);
   // 每 3 回合胜利奖励：这里按回合数发放基础模块轮换，保证装备系统可实际获得
-  if (s.round % 3 === 0) { const ids = ['chip', 'armor', 'healcore', 'chaoscore']; const id = ids[(s.round / 3 - 1) % ids.length]; s.modules[id] = (s.modules[id] ?? 0) + 1; addLog(s, `补给空投：获得模块 x1`); }
+  if (s.round % 3 === 0) { const ids = ['chip', 'armor', 'healcore', 'chaoscore']; const id = ids[(s.round / 3 - 1) % ids.length]; s.modules[id] = (s.modules[id] ?? 0) + 1; addLog(s, `模块补给：获得模块 x1`); }
   addLog(s, s.shopLocked ? `第 ${s.round} 回合开始（商店已锁定，保留上一排卡）` : `第 ${s.round} 回合开始`);
 }
 export function serialize(s: GameState): string {

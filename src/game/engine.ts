@@ -38,7 +38,7 @@ export class Battle {
     const eb = synergyBonus(computeSynergies(enemy.map(p => p.unit)));
     this.chaosTier = pb.chaosTier;
     this.units = [...player.map(p => new BattleUnit(p, pb)), ...enemy.map(p => new BattleUnit(p, eb))];
-    this.log(`战斗开始：玩家 ${player.length} 单位 vs AI ${enemy.length} 单位`);
+    this.log(`入侵开始：我方 ${player.length} 程序 vs 敌方 ${enemy.length} 程序`);
   }
   log(text: string, extra: Partial<BattleEvent> = {}) { if (this.logCount++ < 400) this.events.push({ t: this.time, text, ...extra }); }
   alive(side: Side): BattleUnit[] { return this.units.filter(u => u.side === side && !u.dead); }
@@ -86,7 +86,7 @@ export class Battle {
   step(dt: number) {
     if (this.winner) return;
     this.time += dt;
-    if (this.chaosTier >= 2) { this.chaosTimer -= dt; if (this.chaosTimer <= 0) { this.chaosTimer = 10; const dmg = this.chaosTier >= 3 ? 160 : 80; for (const e of this.alive('enemy')) this.dealDamage(this.alive('player')[0] ?? this.units[0], e, dmg, '混沌脉冲'); this.log(`混沌协议脉冲触发（${dmg} 点伤害）`); } }
+    if (this.chaosTier >= 2) { this.chaosTimer -= dt; if (this.chaosTimer <= 0) { this.chaosTimer = 10; const dmg = this.chaosTier >= 3 ? 160 : 80; for (const e of this.alive('enemy')) this.dealDamage(this.alive('player')[0] ?? this.units[0], e, dmg, '混沌脉冲'); this.log(`混沌脉冲触发（${dmg} 点伤害）`); } }
     for (const u of [...this.units]) {
       if (u.dead || this.winner) continue;
       if (this.time < u.stunUntil) continue;
@@ -121,9 +121,9 @@ export class Battle {
       const ph = this.alive('player').reduce((s, u) => s + u.hpPct, 0);
       const eh = this.alive('enemy').reduce((s, u) => s + u.hpPct, 0);
       this.winner = ph >= eh ? 'player' : 'enemy';
-      this.log(`战斗超时 60 秒，按剩余生命判定：${this.winner === 'player' ? '玩家胜' : 'AI 胜'}`);
+      this.log(`入侵超时 60 秒，按剩余生命判定：${this.winner === 'player' ? '我方胜' : '敌方胜'}`);
     }
-    if (this.winner) this.log(`战斗结束：${this.winner === 'player' ? '玩家获胜' : this.winner === 'enemy' ? 'AI 获胜' : '平局（按玩家胜结算）'}`);
+    if (this.winner) this.log(`入侵结束：${this.winner === 'player' ? '我方获胜' : this.winner === 'enemy' ? '敌方获胜' : '平局（按我方胜结算）'}`);
   }
   runToEnd(maxSteps = 10000): Battle {
     while (!this.winner && maxSteps-- > 0) this.step(0.1);

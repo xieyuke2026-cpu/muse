@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { createGame, buyUnit, moveUnit, sellUnit, buyXp, tryMerge, equipModule, serialize, deserialize, deployedCount, refreshShop, toggleShopLock, startNextRound } from '../src/game/state';
-import { computeSynergies } from '../src/game/synergy';
+import { computeSynergies, SYNERGIES } from '../src/game/synergy';
 import { simulateBattle } from '../src/game/engine';
 import { buildAiTeam, placeAiTeam } from '../src/game/ai';
 import { newUid } from '../src/game/types';
-import { getUnit } from '../src/game/units';
+import { getUnit, UNITS, MODULES } from '../src/game/units';
 import { rollShop, initialPool, shopOdds } from '../src/game/shop';
 import { mulberry32 } from '../src/game/engine';
 import { unitImageUrl } from '../src/game/images';
@@ -17,7 +17,7 @@ describe('经济与商店', () => {
   });
   it('购买扣费并进备战区，算力不足拒绝', () => {
     const g = createGame(42); const cost = g.shop[0].cost; const gold = g.gold;
-    expect(buyUnit(g, 0)).toContain('已购买'); expect(g.gold).toBe(gold - cost); expect(g.bench.filter(Boolean).length).toBe(1);
+    expect(buyUnit(g, 0)).toContain('已招募'); expect(g.gold).toBe(gold - cost); expect(g.bench.filter(Boolean).length).toBe(1);
     g.gold = 0; const before = g.shop.length; if (before) { buyUnit(g, 0); expect(g.gold).toBe(0); }
   });
   it('刷新扣 2 算力', () => {
@@ -57,13 +57,13 @@ describe('人口、升级与合成', () => {
   });
   it('装备模块消耗库存且上限 3', () => {
     const g = createGame(1); g.bench[0] = mk('razor'); g.selectedUid = g.bench[0]!.uid; g.selectedWhere = 'bench';
-    expect(equipModule(g, 'chip')).toBe('装备成功'); expect(g.modules.chip).toBe(0);
+    expect(equipModule(g, 'chip')).toBe('加载成功'); expect(g.modules.chip).toBe(0);
   });
 });
 describe('协议', () => {
-  it('2 个量子单位激活 Lv1', () => {
+  it('2 个量子密钥单位激活 Lv1', () => {
     const s = computeSynergies([mk('razor'), mk('pulse')]);
-    const q = s.find(x => x.tag === '量子集群')!; expect(q.count).toBe(2); expect(q.level).toBe(1); expect(q.active).toBe(true);
+    const q = s.find(x => x.tag === '量子密钥')!; expect(q.count).toBe(2); expect(q.level).toBe(1); expect(q.active).toBe(true);
   });
   it('无部署时全部未激活', () => {
     const s = computeSynergies([]); expect(s.every(x => !x.active)).toBe(true);
@@ -99,7 +99,7 @@ describe('战斗引擎', () => {
 });
 describe('图片素材', () => {
   it('6 个职业都有内嵌图片数据（非空 data URI）', () => {
-    for (const role of ['突袭程序', '防御节点', '算力核心', '分析引擎', '修复进程', '混沌程序']) {
+    for (const role of ['渗透程序', '防御程序', '算力核心', '侦察引擎', '修复程序', '混沌程序']) {
       expect(unitImageUrl(role).startsWith('data:image/jpeg;base64,')).toBe(true);
     }
   });
@@ -113,5 +113,27 @@ describe('AI 与存档', () => {
   it('序列化/反序列化后金币与阵容一致', () => {
     const g = createGame(11); g.bench[0] = mk('razor'); g.gold = 77;
     const back = deserialize(serialize(g))!; expect(back.gold).toBe(77); expect(back.bench[0]?.defId).toBe('razor');
+  });
+});
+
+describe('v6 主题一致性', () => {
+  it('4 个协议都有真实逻辑且单位标签不越界', () => {
+    expect(SYNERGIES.map(s => s.tag).sort()).toEqual(['分布式网络', '混沌协议', '量子密钥', '零信任架构'].sort());
+    const tags = new Set(SYNERGIES.map(s => s.tag));
+    for (const u of UNITS) for (const tag of u.tags) expect(tags.has(tag)).toBe(true);
+  });
+  it('没有名实不符的技能描述（致盲、吸引火力已删除）', () => {
+    for (const u of UNITS) {
+      expect(u.skill.desc).not.toContain('致盲');
+      expect(u.skill.desc).not.toContain('吸引火力');
+    }
+    expect(UNITS.find(u => u.id === 'ghost')!.skillName).toBe('幽灵注入');
+    expect(UNITS.find(u => u.id === 'ironwall')!.skillName).toBe('沙箱隔离');
+  });
+  it('没有旧幻想名称残留', () => {
+    const names = UNITS.map(u => u.name);
+    for (const old of ['闪袭者', '数据牧师', '脉冲法师', '圣殿守护', '修复蜂', '幽灵刃', '铁壁']) expect(names).not.toContain(old);
+    expect(MODULES.find(m => m.id === 'healcore')!.name).toBe('自愈核心');
+    expect(UNITS.length).toBe(16);
   });
 });

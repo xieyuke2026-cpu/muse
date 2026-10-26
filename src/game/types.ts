@@ -1,5 +1,5 @@
-export type Role = '突袭程序' | '防御节点' | '算力核心' | '分析引擎' | '修复进程' | '混沌程序';
-export type Tag = '量子集群' | '零信任' | '分布式网络' | '混沌协议';
+export type Role = '渗透程序' | '防御程序' | '算力核心' | '侦察引擎' | '修复程序' | '混沌程序';
+export type Tag = '量子密钥' | '零信任架构' | '分布式网络' | '混沌协议';
 export type SkillKind = 'burst' | 'aoe' | 'heal' | 'shield' | 'stun' | 'buff' | 'dot' | 'chaos' | 'execute';
 export interface SkillDef { kind: SkillKind; power: number; radius?: number; desc: string }
 export interface UnitDef {

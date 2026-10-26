@@ -4,7 +4,7 @@ import { UNITS, getUnit } from './units';
 import type { Rng } from './engine';
 
 // AI 按回合成长：等级、星级、阵容规模都随回合提升；不是固定脚本。
-// 部署规则：防御节点放前排（y=0~1），其余放后排（y=2~3），高费用居中。
+// 部署规则：防御程序放前排（y=0~1），其余放后排（y=2~3），高费用居中。
 export function buildAiTeam(round: number, rng: Rng): OwnedUnit[] {
   const level = Math.min(9, 2 + Math.floor(round / 2));
   const budgetUnits = Math.min(level, 2 + Math.floor(round / 2));
@@ -33,13 +33,13 @@ export function buildAiTeam(round: number, rng: Rng): OwnedUnit[] {
 export interface AiPlacement { unit: OwnedUnit; x: number; y: number }
 export function placeAiTeam(team: OwnedUnit[]): AiPlacement[] {
   const sorted = [...team].sort((a, b) => {
-    const ra = getUnit(a.defId).role === '防御节点' ? 0 : 1;
-    const rb = getUnit(b.defId).role === '防御节点' ? 0 : 1;
+    const ra = getUnit(a.defId).role === '防御程序' ? 0 : 1;
+    const rb = getUnit(b.defId).role === '防御程序' ? 0 : 1;
     return ra - rb || getUnit(b.defId).cost - getUnit(a.defId).cost;
   });
   return sorted.map((unit, i) => {
     const def = getUnit(unit.defId);
-    const front = def.role === '防御节点';
+    const front = def.role === '防御程序';
     const row = front ? (i % 2) : 2 + (i % 2);
     const col = 1 + ((i * 2) % 6);
     return { unit, x: col, y: row };

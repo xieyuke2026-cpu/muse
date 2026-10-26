@@ -3,8 +3,8 @@ import { ROLE_IMAGE_DATA } from './imageData';
 const ROLE_KEY: Record<string, string> = {
   '渗透程序': 'assault',
   '防御程序': 'defense',
-  '算力核心': 'core',
-  '侦察引擎': 'analysis',
+  '核心程序': 'core',
+  '侦察程序': 'analysis',
   '修复程序': 'repair',
   '混沌程序': 'chaos',
 };

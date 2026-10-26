@@ -99,7 +99,7 @@ describe('战斗引擎', () => {
 });
 describe('图片素材', () => {
   it('6 个职业都有内嵌图片数据（非空 data URI）', () => {
-    for (const role of ['渗透程序', '防御程序', '算力核心', '侦察引擎', '修复程序', '混沌程序']) {
+    for (const role of ['渗透程序', '防御程序', '核心程序', '侦察程序', '修复程序', '混沌程序']) {
       expect(unitImageUrl(role).startsWith('data:image/jpeg;base64,')).toBe(true);
     }
   });
@@ -128,11 +128,13 @@ describe('v6 主题一致性', () => {
       expect(u.skill.desc).not.toContain('吸引火力');
     }
     expect(UNITS.find(u => u.id === 'ghost')!.skillName).toBe('幽灵注入');
+    expect(UNITS.find(u => u.id === 'sentinel')!.name).toBe('防火墙');
+    expect(UNITS.find(u => u.id === 'ghost')!.name).toBe('幽灵子代理');
     expect(UNITS.find(u => u.id === 'ironwall')!.skillName).toBe('沙箱隔离');
   });
   it('没有旧幻想名称残留', () => {
     const names = UNITS.map(u => u.name);
-    for (const old of ['闪袭者', '数据牧师', '脉冲法师', '圣殿守护', '修复蜂', '幽灵刃', '铁壁']) expect(names).not.toContain(old);
+    for (const old of ['闪袭者', '数据牧师', '脉冲法师', '圣殿守护', '修复蜂', '幽灵刃', '铁壁', '零日猎手', '防火墙守卫', '补丁蜂', '幽灵代理', '沙箱壁垒', '端口猎手', '暗网之眼']) expect(names).not.toContain(old);
     expect(MODULES.find(m => m.id === 'healcore')!.name).toBe('自愈核心');
     expect(UNITS.length).toBe(16);
   });

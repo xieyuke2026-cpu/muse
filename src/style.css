@@ -26,7 +26,6 @@ button.danger{background:#3b0a2a;border-color:#e879f9;color:#fbcfe8}
 .token.enemy .hp i{background:#ef4444} .token.player .hp i{background:#22c55e}
 .unit-img{width:30px;height:30px;object-fit:cover;border-radius:5px;vertical-align:middle}
 .unit-img.big{width:64px;height:64px} .unit-img.small{width:26px;height:26px}
-#enemyGrid .cell{background:#2a0a18aa;border-color:#f43f5e66}
 #playerGrid .cell{background:#082a33aa;border-color:#22d3ee66}
 .cell.target{outline:3px dashed #facc15;box-shadow:0 0 12px #facc15aa}
 .legend-player{color:#67e8f9;font-weight:bold} .legend-enemy{color:#fda4af;font-weight:bold}
@@ -56,7 +55,7 @@ html,body{height:100%;overflow:hidden}
 .center-panel .step-hint{margin:4px 0;padding:6px 8px;font-size:12px}
 .field-area{flex:1;min-height:0;display:flex;flex-direction:column}
 .field-area .grid{flex:1;min-height:0;grid-template-rows:repeat(4,1fr)}
-#enemyGrid .cell,#playerGrid .cell{aspect-ratio:auto}
+#playerGrid .cell{aspect-ratio:auto}
 .arena{flex:1;min-height:0;height:auto}
 
 .side-panel .log{height:150px}
@@ -178,3 +177,42 @@ button.danger{background:#3b0f24;border-color:#7f1d4d}
   .shop{grid-template-columns:repeat(3,1fr)}
   .card-stats span:last-child{display:none}
 }
+
+/* ===== v7：实质精修 —— 网格 HUD 底、面板分层、部署区放大、商店卡重组 ===== */
+body{background:#04071a;background-image:linear-gradient(rgba(34,211,238,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,.045) 1px,transparent 1px),radial-gradient(900px 300px at 50% -80px,rgba(34,211,238,.14),transparent 70%);background-size:48px 48px,48px 48px,100% 100%}
+.panel{background:#0a1128f2;border:1px solid #1e2f52;border-radius:8px}
+.panel h3{display:flex;align-items:center;gap:8px}
+.panel h3::before{content:'';flex:none;width:7px;height:7px;background:#22d3ee}
+.topbar{background:linear-gradient(90deg,#081026,#0e1a3a);border:1px solid #1e2f52}
+.topbar h1{font-size:19px}
+.corebar{border:1px solid #22345c;background-image:repeating-linear-gradient(90deg,transparent 0 12px,rgba(0,0,0,.45) 12px 13px)}
+.field-area .grid{gap:6px}
+#playerGrid .cell{min-height:0;background:#0c1730;border-color:#22345c}
+#playerGrid .cell .ic{font-size:24px}
+.shop .card{background:#0f1a36;border:1px solid #22345c;border-left-width:5px;padding:10px 12px}
+.shop .card .unit-img{width:36px;height:36px}
+.shop .card .card-name b{font-size:14px}
+.bench .cell{width:64px;height:64px}
+.syn{padding:8px 10px}
+.syn-base{font-size:11px;color:#94a3b8;margin-top:3px}
+.syn-tier{font-size:11px;color:#64748b;padding-left:14px;line-height:1.6}
+.syn-tier.on{color:#67e8f9}
+.syn-tier.next{color:#facc15}
+.proto-line{font-size:12px;color:#94a3b8;line-height:1.6}
+.proto-line .tier-on{color:#67e8f9}
+.legend-player{font-size:13px;padding:4px 0}
+
+/* v7b：窄屏与卡片紧凑化 —— 卡片信息单行不换行，待命格随宽度缩小 */
+.shop .card .card-tags{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shop .card .card-stats{flex-wrap:nowrap;overflow:hidden}
+.shop .card .card-stats span{white-space:nowrap}
+.shop .card .card-stats span:last-child{overflow:hidden;text-overflow:ellipsis}
+@media (max-width:1100px){
+  .bench .cell{width:48px;height:48px}
+  .shop .card{padding:6px 8px}
+  .shop .card .unit-img{width:30px;height:30px}
+  .shop .card .card-name b{font-size:13px}
+}
+
+/* v7c：待命行按钮不换行，避免窄屏被压高 */
+.bench-row button{flex:none;white-space:nowrap}

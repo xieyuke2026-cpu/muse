@@ -1,4 +1,5 @@
 import { createGame, loadGame, saveGame, refreshShop, toggleShopLock, buyUnit, sellUnit, moveUnit, buyXp, equipModule, deployedUnits, deployedCount, benchCount, synergyOf, applyRoundIncome, startNextRound, addLog, type GameState } from './game/state';
+import { SYNERGIES } from './game/synergy';
 import { getUnit, MODULES } from './game/units';
 import { unitImgTag } from './game/images';
 import { starMultiplier, sellPrice, BOARD_W } from './game/types';
@@ -31,16 +32,14 @@ app.innerHTML = `
 </div>
 <div class="notice" id="msg"></div>
 <div class="layout">
-  <div class="panel side-panel"><h3>协议组合（按部署动态计算）</h3><div id="synergies"></div>
-    <h3>入侵统计</h3><div id="stats" class="muted"></div>
-    <h3>入侵记录</h3><div class="log" id="log"></div></div>
+  <div class="panel side-panel"><h3>协议组合（点一行可追踪）</h3><div id="synergies"></div>
+    <h3>入侵统计</h3><div id="stats" class="muted"></div></div>
   <div class="panel center-panel">
     <div id="phaseLabel" class="notice"></div>
     <div class="step-hint" id="stepHint"></div>
     <div class="shop-section" id="shopSection"><div class="shop-head"><h3>暗网黑市 <span class="muted">点卡即招募 · 算力收益：每 10 算力 +1，上限 5</span></h3><button id="btnLock" class="lock-btn" aria-pressed="false">🔓 锁定商店</button></div><div class="shop" id="shop"></div><div class="odds-bar" id="oddsBar" aria-label="商店费用概率"></div></div>
-    <div id="enemyArea" class="field-area"><div class="legend-enemy">▲ 敌方网络（品红/红色区域）</div><div class="grid" id="enemyGrid"></div></div>
     <div class="arena" id="arena" style="display:none"><div class="mid"></div><div id="fxLayer"></div><div id="tokens"></div><div class="battle-controls"><button id="btnSpeed">⏩ 速度 1×</button></div><div class="last-skill" id="lastSkill"></div></div>
-    <div id="playerArea" class="field-area"><div class="legend-player">▼ 我方网络（青色区域） · 已部署 <span id="pop"></span> · <span class="legend-player">■ 我方青色 + 我字徽标</span> <span class="legend-enemy">■ 敌方红色 + 敌字徽标</span></div><div class="grid" id="playerGrid"></div></div>
+    <div id="playerArea" class="field-area"><div class="legend-player">部署区 · 已部署 <span id="pop"></span> · 防御程序站前排，远程站后排 · 敌方只在入侵时出现</div><div class="grid" id="playerGrid"></div></div>
     <div class="bench-section" id="benchSection">
       <div class="bench-row"><span class="bench-label">待命程序</span><div class="bench" id="bench"></div><button id="btnAutoDeploy" class="primary">⚡ 一键部署全部</button></div>
       <div class="economy-bar"><span>指挥等级 Lv.<b id="level"></b> · 经验 <span id="xp"></span> · <span class="muted" id="xpHint"></span> <button id="btnXp">⬆️ 购买经验（4）</button></span><span class="gold-big">💰 <b id="gold"></b> 算力</span></div>
@@ -157,6 +156,11 @@ function renderTop() {
   $('xpHint').textContent = game.level >= 9 ? '已满级' : `下一级还差 ${xpToNext(game.level, game.xp)} 经验`;
   $('pop').textContent = `${deployedCount(game)} / ${game.level}`;
 }
+function synergyTierHtml(s: ReturnType<typeof synergyOf>[number]): string {
+  const def = SYNERGIES.find(x => x.tag === s.tag)!;
+  return `<div class="syn-base">${def.desc}</div>` + def.levels.map((l, i) =>
+    `<div class="syn-tier ${s.level > i ? 'on' : s.level === i ? 'next' : ''}">${l.count}个：${l.desc}</div>`).join('');
+}
 function renderLeft() {
   const synEl = $('synergies'); synEl.innerHTML = '';
   for (const s of synergyOf(game)) {
@@ -164,17 +168,25 @@ function renderLeft() {
     b.className = 'syn' + (s.active ? ' active' : '') + (trackedTag === s.tag ? ' tracked' : '');
     b.setAttribute('aria-pressed', trackedTag === s.tag ? 'true' : 'false');
     b.title = trackedTag === s.tag ? '已追踪该协议，再点取消' : '点此追踪该协议，高亮商店与场上同协议程序';
-    b.innerHTML = `<span class="tag">◆ ${s.tag}</span> ${s.count} 个 · ${s.active ? `Lv${s.level} 已激活：${s.desc}` : s.desc}`;
+    b.innerHTML = `<span class="tag">◆ ${s.tag}</span> ${s.count}个 · ${s.active ? `Lv${s.level} 已激活` : `未激活，还需 ${SYNERGIES.find(x => x.tag === s.tag)!.levels[0].count - s.count}个`}${synergyTierHtml(s)}`;
     b.onclick = () => { trackedTag = trackedTag === s.tag ? null : s.tag; setMsg(trackedTag ? `已追踪协议「${trackedTag}」` : '已取消协议追踪'); renderAll(); };
     synEl.appendChild(b);
   }
   $('stats').innerHTML = `胜 ${game.stats.wins} · 负 ${game.stats.losses} · 累计击破 ${game.stats.kills} · 累计伤害 ${Math.round(game.stats.damage)}<br/>连胜 ${game.winStreak}`;
-  $('log').textContent = game.log.join('\n');
+}
+function protocolHtml(def: ReturnType<typeof getUnit>): string {
+  const states = synergyOf(game);
+  return def.tags.map(tag => {
+    const st = states.find(s => s.tag === tag)!;
+    const sy = SYNERGIES.find(x => x.tag === tag)!;
+    const tiers = sy.levels.map((l, i) => `<span class="${st.level > i ? 'tier-on' : ''}">${l.count}个 ${l.desc}</span>`).join('；');
+    return `<div class="proto-line">◆ ${tag}：当前 ${st.count}个 · ${st.active ? `Lv${st.level} 已激活` : '未激活'}（${tiers}）</div>`;
+  }).join('');
 }
 function previewHtml(def: ReturnType<typeof getUnit>): string {
   return `<div>${unitImgTag(def.role, 'unit-img big')}<span style="font-size:22px">${def.icon} <b>${def.name}</b> ★1 · ${def.cost}费</span></div>
   <div><span class="tagchip">${def.role}</span>${def.tags.map((t: string) => `<span class="tagchip">${t}</span>`).join('')}</div>
-  <div style="margin-top:6px;font-size:13px;line-height:1.7">生命 ${def.hp} · 攻击 ${def.atk} · 攻速 ${def.aspd}/秒 · 射程 ${def.range} 格 · 护甲 ${def.armor}<br/>技能「${def.skillName}」：${def.skill.desc}<br/><span class="muted">悬停预览（未选中），点商店卡即招募</span></div>`;
+  <div style="margin-top:6px;font-size:13px;line-height:1.7">生命 ${def.hp} · 攻击 ${def.atk} · 攻速 ${def.aspd}/秒 · 射程 ${def.range} 格 · 护甲 ${def.armor}<br/>技能「${def.skillName}」：${def.skill.desc}<br/>${protocolHtml(def)}<br/><span class="muted">悬停预览（未选中），点商店卡即招募</span></div>`;
 }
 function renderRight() {
   const sel = findSelected(); const detail = $('detail');
@@ -185,7 +197,7 @@ function renderRight() {
     detail.innerHTML = `<div>${unitImgTag(def.role, 'unit-img big')}<span style="font-size:28px">${def.icon} <b>${def.name}</b> ★${sel.u.star} · ${def.cost}费</span></div>
     <div><span class="tagchip">${def.role}</span>${def.tags.map((t: string) => `<span class="tagchip">${t}</span>`).join('')}</div>
     <div style="margin-top:6px;font-size:13px;line-height:1.7">生命 ${Math.round(def.hp * m)} · 攻击 ${Math.round(def.atk * m)} · 攻速 ${def.aspd}/秒 · 射程 ${def.range} 格 · 护甲 ${def.armor}<br/>
-    技能「${def.skillName}」：${def.skill.desc}<br/>模块：${sel.u.items.length ? sel.u.items.map(i => MODULES.find(x => x.id === i)?.name).join('、') : '无'}<br/>卸载回收：${sellPrice(def, sel.u.star)} 算力</div>`;
+    技能「${def.skillName}」：${def.skill.desc}<br/>${protocolHtml(def)}<br/>模块：${sel.u.items.length ? sel.u.items.map(i => MODULES.find(x => x.id === i)?.name).join('、') : '无'}<br/>卸载回收：${sellPrice(def, sel.u.star)} 算力</div>`;
   }
   $('modules').innerHTML = MODULES.map(md => `<button data-m="${md.id}" style="margin:2px">${md.icon} ${md.name}（${game.modules[md.id] ?? 0}）<br/><span class="muted">${md.desc}</span></button>`).join('');
   $('modules').querySelectorAll('button').forEach(b => b.onclick = () => { setMsg(equipModule(game, b.dataset.m!)); renderAll(); });
@@ -218,14 +230,12 @@ function renderShopBench() {
   game.bench.forEach((u, i) => benchEl.appendChild(cellEl(u, 'bench', i)));
 }
 function renderBoards() {
-  const eg = $('enemyGrid'); eg.innerHTML = '';
-  for (let i = 0; i < 32; i++) { const c = document.createElement('div'); c.className = 'cell'; c.innerHTML = '<span class="muted">AI</span>'; eg.appendChild(c); }
   const pg = $('playerGrid'); pg.innerHTML = '';
   game.board.forEach((u, i) => pg.appendChild(cellEl(u, 'board', i)));
-  const arena = $('arena'); const enemyArea = $('enemyArea'); const playerArea = $('playerArea');
+  const arena = $('arena'); const playerArea = $('playerArea');
   const shopSection = $('shopSection'); const benchSection = $('benchSection');
-  if (game.phase === 'battle') { arena.style.display = 'block'; enemyArea.style.display = 'none'; playerArea.style.display = 'none'; shopSection.style.display = 'none'; benchSection.style.display = 'none'; }
-  else { arena.style.display = 'none'; enemyArea.style.display = 'flex'; playerArea.style.display = 'flex'; shopSection.style.display = 'block'; benchSection.style.display = 'block'; }
+  if (game.phase === 'battle') { arena.style.display = 'block'; playerArea.style.display = 'none'; shopSection.style.display = 'none'; benchSection.style.display = 'none'; }
+  else { arena.style.display = 'none'; playerArea.style.display = 'flex'; shopSection.style.display = 'block'; benchSection.style.display = 'block'; }
 }
 function renderAll() { renderTop(); renderLeft(); renderRight(); renderShopBench(); renderBoards(); }
 const FX_COLOR: Record<string, string> = { burst: '#fda4af', aoe: '#fb923c', heal: '#4ade80', shield: '#22d3ee', stun: '#facc15', buff: '#fbbf24', dot: '#c084fc', chaos: '#e879f9' };

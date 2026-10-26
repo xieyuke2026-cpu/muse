@@ -104,3 +104,42 @@ body{background:linear-gradient(180deg,#1e1b4b,#020617 60%)}
 .battle-btn{background:linear-gradient(90deg,#f97316,#e11d48);border-color:#fb923c;color:#fff;font-size:20px;font-weight:bold;padding:12px 22px;border-radius:10px}
 .battle-btn span{font-size:13px;font-weight:normal}
 .battle-btn:disabled{opacity:.45}
+
+/* ===== v5：四 skills 重设计 —— 切角、追踪、拖拽、概率条、技能动画 ===== */
+.topbar{clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))}
+.battle-btn{clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px))}
+button:focus-visible,.cell:focus-visible,.card:focus-visible{outline:3px solid #facc15;outline-offset:2px}
+.shop-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.shop-head h3{margin-bottom:6px;padding-bottom:4px}
+.lock-btn{flex:none;font-size:12px;padding:6px 10px}
+.lock-btn.active{background:#facc15;color:#111;border-color:#fde68a;font-weight:bold}
+.odds-bar{display:flex;gap:3px;margin-top:6px;height:16px;font-size:11px;color:#111;font-weight:bold}
+.odds-seg{display:flex;align-items:center;justify-content:center;border-radius:3px;overflow:hidden;white-space:nowrap}
+.syn{width:100%;text-align:left;cursor:pointer}
+.syn.tracked{border-color:#facc15;box-shadow:0 0 10px #facc1588}
+.card.tracked,.cell.tracked{outline:3px solid #facc15;box-shadow:0 0 14px #facc1588}
+.cell.dragging{opacity:.45}
+.cell.drag-over{outline:3px dashed #22d3ee;box-shadow:0 0 14px #22d3ee88}
+#btnSell.sell-ready{outline:3px dashed #f43f5e}
+#btnSell.drag-over{background:#7f1d2d;color:#fff}
+.bench .cell.pop{animation:pop .45s ease}
+@keyframes pop{0%{transform:scale(.7)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+.shop.refreshing .card{animation:shopIn .3s ease both}
+.shop.refreshing .card:nth-child(2){animation-delay:.05s}.shop.refreshing .card:nth-child(3){animation-delay:.1s}.shop.refreshing .card:nth-child(4){animation-delay:.15s}.shop.refreshing .card:nth-child(5){animation-delay:.2s}
+@keyframes shopIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.arena{overflow:hidden}
+#fxLayer{position:absolute;inset:0;pointer-events:none;z-index:5}
+.fx{position:absolute;transform:translate(-50%,-50%);text-align:center;pointer-events:none}
+.fx-ring{display:block;width:72px;height:72px;margin:0 auto;border:3px solid;border-radius:50%;animation:fxRing .9s ease-out forwards}
+.fx-label{display:block;margin-top:4px;font-size:13px;font-weight:bold;white-space:nowrap;text-shadow:0 1px 4px #000;animation:fxLabel .9s ease-out forwards}
+@keyframes fxRing{from{transform:scale(.4);opacity:1}to{transform:scale(1.7);opacity:0}}
+@keyframes fxLabel{from{transform:translateY(0);opacity:1}to{transform:translateY(-16px);opacity:0}}
+.token.charged{animation:charged 1s ease-in-out infinite}
+@keyframes charged{0%,100%{box-shadow:0 0 8px #facc1555}50%{box-shadow:0 0 22px #facc15cc}}
+.battle-controls{position:absolute;top:8px;right:10px;z-index:6}
+.last-skill{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:6;background:#020617cc;border:1px solid #facc1555;border-radius:6px;padding:4px 10px;font-size:13px;color:#facc15}
+.last-skill:empty{display:none}
+@media (prefers-reduced-motion: reduce){
+  .fx-ring,.fx-label,.token.charged,.bench .cell.pop,.shop.refreshing .card{animation:none !important}
+  .token{transition:none}
+}

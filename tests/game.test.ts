@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { createGame, buyUnit, moveUnit, sellUnit, buyXp, tryMerge, equipModule, serialize, deserialize, deployedCount, refreshShop } from '../src/game/state';
+import { createGame, buyUnit, moveUnit, sellUnit, buyXp, tryMerge, equipModule, serialize, deserialize, deployedCount, refreshShop, toggleShopLock, startNextRound } from '../src/game/state';
 import { computeSynergies } from '../src/game/synergy';
 import { simulateBattle } from '../src/game/engine';
 import { buildAiTeam, placeAiTeam } from '../src/game/ai';
 import { newUid } from '../src/game/types';
 import { getUnit } from '../src/game/units';
-import { rollShop, initialPool } from '../src/game/shop';
+import { rollShop, initialPool, shopOdds } from '../src/game/shop';
 import { mulberry32 } from '../src/game/engine';
 import { unitImageUrl } from '../src/game/images';
 
@@ -22,6 +22,16 @@ describe('经济与商店', () => {
   });
   it('刷新扣 2 算力', () => {
     const g = createGame(42); g.gold = 10; expect(refreshShop(g)).toBe(true); expect(g.gold).toBe(8); expect(g.shop.length).toBeGreaterThan(0);
+  });
+  it('商店锁定后下一回合保留原卡，解锁后才刷新', () => {
+    const g = createGame(42); const before = g.shop.map(d => d.id);
+    expect(toggleShopLock(g)).toContain('已锁定'); startNextRound(g);
+    expect(g.shop.map(d => d.id)).toEqual(before);
+    expect(toggleShopLock(g)).toContain('已解锁');
+  });
+  it('费用概率条：1 级全是 1 费，各级概率和为 1', () => {
+    expect(shopOdds(1)).toEqual([1, 0, 0, 0, 0]);
+    for (const lv of [3, 5, 7, 9]) expect(shopOdds(lv).reduce((a, b) => a + b, 0)).toBeCloseTo(1);
   });
   it('商店抽卡不超出卡池且费用合法', () => {
     const pool = initialPool(); const cards = rollShop(5, pool, mulberry32(7));
@@ -71,6 +81,14 @@ describe('战斗引擎', () => {
       [{ unit: mk('razor'), x: 3.5, y: 5.5, side: 'player' }, { unit: mk('sentinel'), x: 4.5, y: 4.5, side: 'player' }],
       [{ unit: mk('ghost'), x: 3.5, y: 2.5, side: 'enemy' }], 123);
     expect(mkBattle().winner).toBe(mkBattle().winner);
+  });
+  it('技能事件带施法者、技能类型与目标（供 UI 做技能动画）', () => {
+    const b = simulateBattle(
+      [{ unit: mk('sanctum', 3), x: 3.5, y: 5.5, side: 'player' }],
+      [{ unit: mk('sanctum', 3), x: 3.5, y: 2.5, side: 'enemy' }], 5);
+    const skills = b.events.filter(e => e.kind === 'skill');
+    expect(skills.length).toBeGreaterThan(0);
+    for (const e of skills) { expect(e.casterUid).toBeTruthy(); expect(e.skillKind).toBeTruthy(); expect(Array.isArray(e.targetUids)).toBe(true); }
   });
   it('战斗在 60 秒内结束（超时判定存在）', () => {
     const b = simulateBattle(

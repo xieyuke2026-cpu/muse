@@ -36,6 +36,15 @@ npm run build && npm run preview
 6. 右侧可出售选中单位、给选中单位装备模块；底部可刷新商店（2 算力）、购买经验（4 算力 = +4 经验）。
 7. 「保存 / 读取」用浏览器本地存储；「重新开始」开新局。
 
+## v5（2026-10-26）：四 skills 重设计
+
+用新装的 frontend-design（Anthropic）、web-design（max0821）、frontend-ui-engineering（Addy Osmani）、
+web-design-engineer（ConardLi）重做表现层，版式仍是货币战争一屏（设计声明见 DESIGN-V5.md）：
+拖拽部署（备战区↔部署区、交换、拖到出售即卖，点选与键盘仍可用）、点左侧羁绊行追踪（商店与场上同羁绊卡发金光）、
+商店锁定（锁定后下一回合保留当前卡）、商店下方费用概率条（按等级的真实概率）、商店卡悬停预览技能、
+战斗技能动画（扩散环 + 技能名飘字，按技能类型分色）、能量将满脉动金边、战斗速度 1×/2×、购买弹一下、刷新依次淡入。
+游戏数值、经济、合成、战斗规则在 v5 中一字未动；动效只用 transform/opacity，`prefers-reduced-motion` 时关闭。
+
 ## 核心规则（公开数值）
 
 - 初始：算力 30，等级 1，核心 100/100。人口 = 等级，上限 9。
@@ -78,5 +87,5 @@ tests/browser-test.mjs  同机无头 Chromium 实测脚本
 ## 测试
 
 ```bash
-npm test   # 16 项全部通过，见 TEST-REPORT.md
+npm test   # 20 项全部通过（v5 新增锁定、概率、技能事件 3 组），见 TEST-REPORT.md
 ```

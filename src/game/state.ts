@@ -11,7 +11,7 @@ export interface GameState {
   gold: number; xp: number; level: number; round: number;
   playerCore: number; enemyCore: number; phase: Phase;
   board: (OwnedUnit | null)[]; // 玩家部署区：BOARD_W*BOARD_H，索引=y*W+x（y=0 为最前排，贴近敌方）
-  bench: (OwnedUnit | null)[]; shop: UnitDef[]; pool: Map<string, number>;
+  bench: (OwnedUnit | null)[]; shop: UnitDef[]; shopLocked: boolean; pool: Map<string, number>;
   modules: Record<string, number>; selectedUid: string | null; selectedWhere: 'board' | 'bench' | null;
   log: string[]; lastResult: string; winStreak: number; stats: { wins: number; losses: number; kills: number; damage: number };
   seed: number;
@@ -21,7 +21,7 @@ export function createGame(seed = Date.now() % 100000): GameState {
   const pool = initialPool();
   const s: GameState = {
     gold: 30, xp: 0, level: 1, round: 1, playerCore: 100, enemyCore: 100, phase: 'prep',
-    board: Array(BOARD_W * BOARD_H).fill(null), bench: Array(9).fill(null), shop: [], pool,
+    board: Array(BOARD_W * BOARD_H).fill(null), bench: Array(9).fill(null), shop: [], shopLocked: false, pool,
     modules: { chip: 1, armor: 1, healcore: 0, chaoscore: 0 }, selectedUid: null, selectedWhere: null,
     log: ['系统初始化完成。欢迎来到黑客世界。'], lastResult: '备战阶段：购买单位并部署，然后点击「开始战斗」。',
     winStreak: 0, stats: { wins: 0, losses: 0, kills: 0, damage: 0 }, seed,
@@ -37,6 +37,11 @@ export function deployedUnits(s: GameState): OwnedUnit[] { return s.board.filter
 export function deployedCount(s: GameState): number { return deployedUnits(s).length; }
 export function benchCount(s: GameState): number { return s.bench.filter(Boolean).length; }
 export function addLog(s: GameState, text: string) { s.log.unshift(`[R${s.round}] ${text}`); s.log = s.log.slice(0, 120); }
+export function toggleShopLock(s: GameState): string {
+  s.shopLocked = !s.shopLocked;
+  addLog(s, s.shopLocked ? '商店已锁定：下一回合不再自动刷新' : '商店已解锁：下一回合将自动刷新');
+  return s.shopLocked ? '商店已锁定，下一回合保留当前卡牌' : '商店已解锁';
+}
 export function refreshShop(s: GameState): boolean {
   if (s.gold < 2) return false;
   // 旧商店未购买的单位返还卡池（购买过的已在买入时扣池，不重复返还）
@@ -115,10 +120,11 @@ export function applyRoundIncome(s: GameState, won: boolean) {
   s.gold += income; addLog(s, `回合结算：基础收入 5 + 利息 ${interest}${streakBonus ? ' + 连胜 1' : ''} = +${income} 算力`);
 }
 export function startNextRound(s: GameState) {
-  s.round++; s.phase = 'prep'; s.shop = rollShop(s.level, s.pool, Math.random);
+  s.round++; s.phase = 'prep';
+  if (!s.shopLocked) s.shop = rollShop(s.level, s.pool, Math.random);
   // 每 3 回合胜利奖励：这里按回合数发放基础模块轮换，保证装备系统可实际获得
   if (s.round % 3 === 0) { const ids = ['chip', 'armor', 'healcore', 'chaoscore']; const id = ids[(s.round / 3 - 1) % ids.length]; s.modules[id] = (s.modules[id] ?? 0) + 1; addLog(s, `补给空投：获得模块 x1`); }
-  addLog(s, `第 ${s.round} 回合开始`);
+  addLog(s, s.shopLocked ? `第 ${s.round} 回合开始（商店已锁定，保留上一排卡）` : `第 ${s.round} 回合开始`);
 }
 export function serialize(s: GameState): string {
   return JSON.stringify({ ...s, pool: [...s.pool.entries()], shop: s.shop.map(d => d?.id ?? null) });
@@ -129,6 +135,7 @@ export function deserialize(json: string): GameState | null {
     const pool = new Map<string, number>(raw.pool);
     const shop = (raw.shop as (string | null)[]).map(id => (id ? getUnit(id) : null)).filter((d): d is UnitDef => !!d);
     const s = { ...raw, pool, shop } as GameState;
+    if (typeof s.shopLocked !== 'boolean') s.shopLocked = false;
     if (typeof s.gold !== 'number' || !Array.isArray(s.board)) return null;
     return s;
   } catch { return null; }

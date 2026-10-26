@@ -5,7 +5,7 @@ import { computeSynergies, synergyBonus, type SynergyBonus } from './synergy';
 
 export type Side = 'player' | 'enemy';
 export interface BattleInputUnit { unit: OwnedUnit; x: number; y: number; side: Side }
-export interface BattleEvent { t: number; text: string }
+export interface BattleEvent { t: number; text: string; kind?: 'skill' | 'info'; casterUid?: string; skillKind?: string; targetUids?: string[] }
 export type Rng = () => number;
 export function mulberry32(seed: number): Rng {
   let a = seed >>> 0;
@@ -40,7 +40,7 @@ export class Battle {
     this.units = [...player.map(p => new BattleUnit(p, pb)), ...enemy.map(p => new BattleUnit(p, eb))];
     this.log(`战斗开始：玩家 ${player.length} 单位 vs AI ${enemy.length} 单位`);
   }
-  log(text: string) { if (this.logCount++ < 400) this.events.push({ t: this.time, text }); }
+  log(text: string, extra: Partial<BattleEvent> = {}) { if (this.logCount++ < 400) this.events.push({ t: this.time, text, ...extra }); }
   alive(side: Side): BattleUnit[] { return this.units.filter(u => u.side === side && !u.dead); }
   enemiesOf(u: BattleUnit): BattleUnit[] { return this.alive(u.side === 'player' ? 'enemy' : 'player'); }
   alliesOf(u: BattleUnit): BattleUnit[] { return this.alive(u.side).filter(a => a !== u); }
@@ -63,18 +63,25 @@ export class Battle {
     const lowestAlly = [...allies].sort((a, b) => a.hpPct - b.hpPct)[0];
     const lowestEnemy = [...enemies].sort((a, b) => a.hpPct - b.hpPct)[0];
     const strongestEnemy = [...enemies].sort((a, b) => b.atk - a.atk)[0];
-    this.log(`${u.name} 释放技能「${def.skillName}」`);
+    // 技能事件带目标，供 UI 做技能动画；数值逻辑与之前完全一致
+    let targets: BattleUnit[] = [];
     switch (s.kind) {
-      case 'burst': this.dealDamage(u, nearest, u.atk * s.power, '技能'); break;
-      case 'aoe': for (const e of enemies) if (this.dist(nearest, e) <= (s.radius ?? 2)) this.dealDamage(u, e, u.atk * s.power, '范围技能'); break;
-      case 'heal': if (def.id === 'priest') { for (const a of allies) this.heal(u, a, s.power * starMultiplier(u.star)); } else this.heal(u, lowestAlly, s.power * starMultiplier(u.star)); break;
-      case 'shield': if (def.id === 'sanctum') { for (const a of allies) a.shield += s.power * starMultiplier(u.star); } else if (def.id === 'mirage') { u.shield += s.power; const r = allies[Math.floor(this.rng() * allies.length)]; if (r) r.shield += s.power; } else u.shield += s.power * starMultiplier(u.star); break;
-      case 'stun': if (def.id === 'abyss') { strongestEnemy.stunUntil = this.time + s.power; this.dealDamage(u, strongestEnemy, u.atk * 2, '凝视'); } else nearest.stunUntil = this.time + s.power; break;
-      case 'buff': for (const a of allies) { if (def.id === 'overclock') { a.buffAtkUntil = this.time + 6; a.buffAtkPct = s.power; } else { a.buffAspdUntil = this.time + 6; a.buffAspdPct = s.power; } } break;
-      case 'dot': { const targets = [...enemies].sort((a, b) => this.dist(u, a) - this.dist(u, b)).slice(0, 3); for (const e of targets) e.dots.push({ dps: s.power * starMultiplier(u.star), until: this.time + 5 }); break; }
-      case 'execute': this.dealDamage(u, lowestEnemy, u.atk * s.power, '处决'); break;
-      case 'chaos': { const roll = this.rng(); if (roll < 0.34) { for (const e of enemies) if (this.dist(nearest, e) <= 2) this.dealDamage(u, e, u.atk * s.power, '混沌重击'); } else if (roll < 0.67) { for (const e of enemies) e.stunUntil = Math.max(e.stunUntil, this.time + 1); this.log('混沌脉冲：全体敌人眩晕 1 秒'); } else { u.buffAtkUntil = this.time + 6; u.buffAtkPct = 0.6; this.log(`${u.name} 进入狂暴：攻击 +60%`); } break; }
+      case 'burst': targets = [nearest]; this.dealDamage(u, nearest, u.atk * s.power, '技能'); break;
+      case 'aoe': targets = enemies.filter(e => this.dist(nearest, e) <= (s.radius ?? 2)); for (const e of targets) this.dealDamage(u, e, u.atk * s.power, '范围技能'); break;
+      case 'heal': targets = def.id === 'priest' ? allies : [lowestAlly]; for (const a of targets) this.heal(u, a, s.power * starMultiplier(u.star)); break;
+      case 'shield': {
+        let extra: BattleUnit | null = null;
+        if (def.id === 'sanctum') { targets = allies; for (const a of allies) a.shield += s.power * starMultiplier(u.star); }
+        else if (def.id === 'mirage') { u.shield += s.power; extra = allies[Math.floor(this.rng() * allies.length)] ?? null; if (extra) extra.shield += s.power; targets = extra && extra !== u ? [u, extra] : [u]; }
+        else { u.shield += s.power * starMultiplier(u.star); targets = [u]; }
+        break; }
+      case 'stun': targets = [def.id === 'abyss' ? strongestEnemy : nearest]; if (def.id === 'abyss') { strongestEnemy.stunUntil = this.time + s.power; this.dealDamage(u, strongestEnemy, u.atk * 2, '凝视'); } else nearest.stunUntil = this.time + s.power; break;
+      case 'buff': targets = allies; for (const a of allies) { if (def.id === 'overclock') { a.buffAtkUntil = this.time + 6; a.buffAtkPct = s.power; } else { a.buffAspdUntil = this.time + 6; a.buffAspdPct = s.power; } } break;
+      case 'dot': targets = [...enemies].sort((a, b) => this.dist(u, a) - this.dist(u, b)).slice(0, 3); for (const e of targets) e.dots.push({ dps: s.power * starMultiplier(u.star), until: this.time + 5 }); break;
+      case 'execute': targets = [lowestEnemy]; this.dealDamage(u, lowestEnemy, u.atk * s.power, '处决'); break;
+      case 'chaos': { const roll = this.rng(); if (roll < 0.34) { targets = enemies.filter(e => this.dist(nearest, e) <= 2); for (const e of targets) this.dealDamage(u, e, u.atk * s.power, '混沌重击'); } else if (roll < 0.67) { targets = enemies; for (const e of enemies) e.stunUntil = Math.max(e.stunUntil, this.time + 1); this.log('混沌脉冲：全体敌人眩晕 1 秒'); } else { targets = [u]; u.buffAtkUntil = this.time + 6; u.buffAtkPct = 0.6; this.log(`${u.name} 进入狂暴：攻击 +60%`); } break; }
     }
+    this.log(`${u.name} 释放技能「${def.skillName}」`, { kind: 'skill', casterUid: u.uid, skillKind: s.kind, targetUids: targets.map(t => t.uid) });
   }
   step(dt: number) {
     if (this.winner) return;

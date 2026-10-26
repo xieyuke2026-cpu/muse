@@ -1,8 +1,8 @@
-import { createGame, loadGame, saveGame, refreshShop, buyUnit, sellUnit, moveUnit, buyXp, equipModule, deployedUnits, deployedCount, benchCount, synergyOf, applyRoundIncome, startNextRound, addLog, type GameState } from './game/state';
+import { createGame, loadGame, saveGame, refreshShop, toggleShopLock, buyUnit, sellUnit, moveUnit, buyXp, equipModule, deployedUnits, deployedCount, benchCount, synergyOf, applyRoundIncome, startNextRound, addLog, type GameState } from './game/state';
 import { getUnit, MODULES } from './game/units';
 import { unitImgTag } from './game/images';
 import { starMultiplier, sellPrice, BOARD_W } from './game/types';
-import { xpToNext } from './game/shop';
+import { xpToNext, shopOdds } from './game/shop';
 import { Battle, type BattleInputUnit } from './game/engine';
 import { buildAiTeam, placeAiTeam } from './game/ai';
 import type { OwnedUnit } from './game/types';
@@ -10,7 +10,12 @@ import type { OwnedUnit } from './game/types';
 let game: GameState = createGame(20261025);
 let battle: Battle | null = null;
 let battleTimer: ReturnType<typeof setInterval> | null = null;
+let battleSpeed = 1;
 let lastEventIdx = 0;
+let fxCount = 0;
+let trackedTag: string | null = null;
+let previewDef: ReturnType<typeof getUnit> | null = null;
+let dragData: { uid: string; where: 'board' | 'bench'; idx: number } | null = null;
 let msg = '';
 
 const app = document.getElementById('app')!;
@@ -32,9 +37,9 @@ app.innerHTML = `
   <div class="panel center-panel">
     <div id="phaseLabel" class="notice"></div>
     <div class="step-hint" id="stepHint"></div>
-    <div class="shop-section" id="shopSection"><h3>🛒 黑市商店 <span class="muted">点卡即买 · 利息：每 10 算力 +1，上限 5</span></h3><div class="shop" id="shop"></div></div>
+    <div class="shop-section" id="shopSection"><div class="shop-head"><h3>🛒 黑市商店 <span class="muted">点卡即买 · 利息：每 10 算力 +1，上限 5</span></h3><button id="btnLock" class="lock-btn" aria-pressed="false">🔓 锁定商店</button></div><div class="shop" id="shop"></div><div class="odds-bar" id="oddsBar" aria-label="商店费用概率"></div></div>
     <div id="enemyArea" class="field-area"><div class="legend-enemy">▲ 敌方网络（品红/红色区域）</div><div class="grid" id="enemyGrid"></div></div>
-    <div class="arena" id="arena" style="display:none"><div class="mid"></div><div id="tokens"></div></div>
+    <div class="arena" id="arena" style="display:none"><div class="mid"></div><div id="fxLayer"></div><div id="tokens"></div><div class="battle-controls"><button id="btnSpeed">⏩ 速度 1×</button></div><div class="last-skill" id="lastSkill"></div></div>
     <div id="playerArea" class="field-area"><div class="legend-player">▼ 我方网络（青色区域） · 已部署 <span id="pop"></span> · <span class="legend-player">■ 我方青色 + 我字徽标</span> <span class="legend-enemy">■ 敌方红色 + 敌字徽标</span></div><div class="grid" id="playerGrid"></div></div>
     <div class="bench-section" id="benchSection">
       <div class="bench-row"><span class="bench-label">📦 备战区</span><div class="bench" id="bench"></div><button id="btnAutoDeploy" class="primary">⚡ 一键部署全部</button></div>
@@ -72,10 +77,33 @@ function cellEl(u: OwnedUnit | null, where: 'board' | 'bench', idx: number): HTM
   const d = document.createElement('div');
   const sel = findSelected();
   const isTarget = !u && sel && ((sel.where === 'bench' && where === 'board') || (sel.where === 'board' && where === 'bench'));
-  d.className = 'cell' + (game.selectedUid === u?.uid ? ' selected' : '') + (isTarget ? ' target' : '');
-  if (u) { const def = getUnit(u.defId); d.innerHTML = `${unitImgTag(def.role, 'unit-img small')}<span class="ic">${def.icon}</span><span>${def.name} ★${u.star}</span><span style="color:${def.color}">${def.cost}费</span>`; d.title = `${def.name} ★${u.star}（${def.role}）`; }
+  const tracked = !!u && !!trackedTag && getUnit(u.defId).tags.includes(trackedTag as never);
+  d.className = 'cell' + (game.selectedUid === u?.uid ? ' selected' : '') + (isTarget ? ' target' : '') + (tracked ? ' tracked' : '');
+  if (u) {
+    const def = getUnit(u.defId);
+    d.innerHTML = `${unitImgTag(def.role, 'unit-img small')}<span class="ic">${def.icon}</span><span>${def.name} ★${u.star}</span><span style="color:${def.color}">${def.cost}费</span>`;
+    d.title = `${def.name} ★${u.star}（${def.role}）· 技能「${def.skillName}」：${def.skill.desc}`;
+    d.draggable = true;
+    d.ondragstart = (e) => { if (game.phase !== 'prep') { e.preventDefault(); return; } dragData = { uid: u.uid, where, idx }; e.dataTransfer?.setData('text/plain', u.uid); d.classList.add('dragging'); $('btnSell').classList.add('sell-ready'); };
+    d.ondragend = () => { dragData = null; d.classList.remove('dragging'); $('btnSell').classList.remove('sell-ready', 'drag-over'); };
+  }
   else d.innerHTML = isTarget ? '<span style="color:#facc15">▶ 可放这里</span>' : '<span class="muted">空</span>';
-  d.onclick = () => onCellClick(where, idx); return d;
+  d.tabIndex = 0; d.setAttribute('role', 'button');
+  d.setAttribute('aria-label', u ? `${getUnit(u.defId).name} ${u.star}星，${where === 'board' ? '部署区' : '备战区'}第 ${idx + 1} 格` : `${where === 'board' ? '部署区' : '备战区'}空格 ${idx + 1}`);
+  d.onclick = () => onCellClick(where, idx);
+  d.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCellClick(where, idx); } };
+  d.ondragover = (e) => { if (game.phase === 'prep' && dragData) { e.preventDefault(); d.classList.add('drag-over'); } };
+  d.ondragleave = () => d.classList.remove('drag-over');
+  d.ondrop = (e) => {
+    e.preventDefault(); d.classList.remove('drag-over');
+    if (!dragData || game.phase !== 'prep') return;
+    const src = dragData; dragData = null;
+    const arr = src.where === 'board' ? game.board : game.bench;
+    const cur = arr.findIndex(v => v?.uid === src.uid); if (cur < 0) return;
+    setMsg(moveUnit(game, src.where, cur, where, idx));
+    game.selectedUid = src.uid; game.selectedWhere = where; renderAll();
+  };
+  return d;
 }
 function preferredBoardSlot(def: ReturnType<typeof getUnit>): number {
   // 防御放前两排，远程放后两排，其他放中排；返回第一个空位
@@ -131,13 +159,28 @@ function renderTop() {
   $('pop').textContent = `${deployedCount(game)} / ${game.level}`;
 }
 function renderLeft() {
-  $('synergies').innerHTML = synergyOf(game).map(s => `<div class="syn ${s.active ? 'active' : ''}"><span class="tag">◆ ${s.tag}</span> ${s.count} 个 · ${s.active ? `Lv${s.level} 已激活：${s.desc}` : s.desc}</div>`).join('');
+  const synEl = $('synergies'); synEl.innerHTML = '';
+  for (const s of synergyOf(game)) {
+    const b = document.createElement('button');
+    b.className = 'syn' + (s.active ? ' active' : '') + (trackedTag === s.tag ? ' tracked' : '');
+    b.setAttribute('aria-pressed', trackedTag === s.tag ? 'true' : 'false');
+    b.title = trackedTag === s.tag ? '已追踪该羁绊，再点取消' : '点此追踪该羁绊，高亮商店与场上同羁绊单位';
+    b.innerHTML = `<span class="tag">◆ ${s.tag}</span> ${s.count} 个 · ${s.active ? `Lv${s.level} 已激活：${s.desc}` : s.desc}`;
+    b.onclick = () => { trackedTag = trackedTag === s.tag ? null : s.tag; setMsg(trackedTag ? `已追踪羁绊「${trackedTag}」` : '已取消羁绊追踪'); renderAll(); };
+    synEl.appendChild(b);
+  }
   $('stats').innerHTML = `胜 ${game.stats.wins} · 负 ${game.stats.losses} · 累计击杀 ${game.stats.kills} · 累计伤害 ${Math.round(game.stats.damage)}<br/>连胜 ${game.winStreak}`;
   $('log').textContent = game.log.join('\n');
 }
+function previewHtml(def: ReturnType<typeof getUnit>): string {
+  return `<div>${unitImgTag(def.role, 'unit-img big')}<span style="font-size:22px">${def.icon} <b>${def.name}</b> ★1 · ${def.cost}费</span></div>
+  <div><span class="tagchip">${def.role}</span>${def.tags.map((t: string) => `<span class="tagchip">${t}</span>`).join('')}</div>
+  <div style="margin-top:6px;font-size:13px;line-height:1.7">生命 ${def.hp} · 攻击 ${def.atk} · 攻速 ${def.aspd}/秒 · 射程 ${def.range} 格 · 护甲 ${def.armor}<br/>技能「${def.skillName}」：${def.skill.desc}<br/><span class="muted">悬停预览（未选中），点商店卡即购买</span></div>`;
+}
 function renderRight() {
   const sel = findSelected(); const detail = $('detail');
-  if (!sel) { detail.innerHTML = '<div class="muted">点击备战区或部署区的一个单位查看详情。</div>'; }
+  if (!sel && previewDef) { detail.innerHTML = previewHtml(previewDef); }
+  else if (!sel) { detail.innerHTML = '<div class="muted">点击备战区或部署区的一个单位查看详情；把鼠标移到商店卡上可预览。</div>'; }
   else {
     const def = getUnit(sel.u.defId); const m = starMultiplier(sel.u.star);
     detail.innerHTML = `<div>${unitImgTag(def.role, 'unit-img big')}<span style="font-size:28px">${def.icon} <b>${def.name}</b> ★${sel.u.star} · ${def.cost}费</span></div>
@@ -151,11 +194,27 @@ function renderRight() {
 function renderShopBench() {
   const shopEl = $('shop'); shopEl.innerHTML = '';
   game.shop.forEach((def, i) => {
-    const c = document.createElement('button'); c.className = `card cost${def.cost}`;
+    const c = document.createElement('button');
+    c.className = `card cost${def.cost}` + (trackedTag && def.tags.includes(trackedTag as never) ? ' tracked' : '');
+    c.title = `技能「${def.skillName}」：${def.skill.desc}`;
     c.innerHTML = `${unitImgTag(def.role, 'unit-img')}<span class="ic">${def.icon}</span> <b>${def.name}</b> ★1<br/>${def.tags.map(t => `<span class="tagchip">${t}</span>`).join('')}<br/><span class="muted">生命${def.hp} 攻击${def.atk}</span><span class="cost" style="float:right">${def.cost} 算力</span>`;
-    c.onclick = () => { if (game.phase !== 'prep') return; setMsg(buyUnit(game, i)); renderAll(); }; shopEl.appendChild(c);
+    c.onmouseenter = () => { previewDef = def; renderRight(); };
+    c.onmouseleave = () => { previewDef = null; renderRight(); };
+    c.onclick = () => {
+      if (game.phase !== 'prep') return;
+      const beforeEmpty = game.bench.findIndex(v => !v);
+      setMsg(buyUnit(game, i)); renderAll();
+      if (beforeEmpty >= 0) { const cell = document.querySelectorAll('#bench .cell')[beforeEmpty] as HTMLElement | undefined; cell?.classList.add('pop'); setTimeout(() => cell?.classList.remove('pop'), 450); }
+    };
+    shopEl.appendChild(c);
   });
   if (!game.shop.length) shopEl.innerHTML = '<div class="muted">商店已空，请刷新或进入下一回合。</div>';
+  const odds = shopOdds(game.level); const colors = ['#9ca3af', '#22c55e', '#38bdf8', '#a78bfa', '#facc15'];
+  $('oddsBar').innerHTML = odds.map((p, i) => p > 0 ? `<span class="odds-seg" style="flex:${p};background:${colors[i]}" title="${i + 1}费概率 ${Math.round(p * 100)}%">${Math.round(p * 100) >= 10 ? `${i + 1}费 ${Math.round(p * 100)}%` : ''}</span>` : '').join('');
+  const lockBtn = $('btnLock') as HTMLButtonElement;
+  lockBtn.textContent = game.shopLocked ? '🔒 商店已锁定' : '🔓 锁定商店';
+  lockBtn.classList.toggle('active', game.shopLocked);
+  lockBtn.setAttribute('aria-pressed', game.shopLocked ? 'true' : 'false');
   const benchEl = $('bench'); benchEl.innerHTML = '';
   game.bench.forEach((u, i) => benchEl.appendChild(cellEl(u, 'bench', i)));
 }
@@ -170,12 +229,29 @@ function renderBoards() {
   else { arena.style.display = 'none'; enemyArea.style.display = 'flex'; playerArea.style.display = 'flex'; shopSection.style.display = 'block'; benchSection.style.display = 'block'; }
 }
 function renderAll() { renderTop(); renderLeft(); renderRight(); renderShopBench(); renderBoards(); }
+const FX_COLOR: Record<string, string> = { burst: '#fda4af', aoe: '#fb923c', heal: '#4ade80', shield: '#22d3ee', stun: '#facc15', buff: '#fbbf24', dot: '#c084fc', chaos: '#e879f9' };
+function spawnSkillFx(ev: NonNullable<Battle['events'][number]>) {
+  if (!battle || !ev.casterUid) return;
+  const layer = $('fxLayer'); const arena = $('arena');
+  const caster = battle.units.find(u => u.uid === ev.casterUid);
+  const targets = (ev.targetUids ?? []).map(id => battle!.units.find(u => u.uid === id)).filter((u): u is NonNullable<typeof u> => !!u && !u.dead);
+  const anchor = targets[0] ?? caster; if (!anchor) return;
+  const skillName = (ev.text.match(/「(.+)」/) ?? [])[1] ?? '技能';
+  const color = FX_COLOR[ev.skillKind ?? ''] ?? '#67e8f9';
+  const fx = document.createElement('div');
+  fx.className = `fx fx-${ev.skillKind ?? 'skill'}`;
+  fx.style.left = `${(anchor.x / 8) * 100}%`; fx.style.top = `${(anchor.y / 8) * 100}%`; fx.style.color = color;
+  fx.innerHTML = `<span class="fx-ring" style="border-color:${color}"></span><span class="fx-label">${caster?.icon ?? ''} ${skillName}</span>`;
+  layer.appendChild(fx); fxCount++; arena.dataset.fxCount = String(fxCount);
+  $('lastSkill').textContent = `✦ ${caster?.name ?? ''} · ${skillName}`;
+  setTimeout(() => fx.remove(), 950);
+}
 function renderBattleTokens() {
   if (!battle) return;
   const box = $('tokens'); box.innerHTML = '';
   for (const u of battle.units) {
     if (u.dead) continue;
-    const d = document.createElement('div'); d.className = `token ${u.side}`;
+    const d = document.createElement('div'); d.className = `token ${u.side}` + (u.energy >= 95 ? ' charged' : '');
     d.style.left = `${(u.x / 8) * 100}%`; d.style.top = `${(u.y / 8) * 100}%`;
     // 敌我区分不再只靠边框颜色：徽标 + 血条颜色 + 底色都不同
     const badge = u.side === 'player' ? '我' : '敌';
@@ -184,6 +260,7 @@ function renderBattleTokens() {
     box.appendChild(d);
   }
   const bl = $('battleLog'); const newEvents = battle.events.slice(lastEventIdx); lastEventIdx = battle.events.length;
+  for (const e of newEvents) if (e.kind === 'skill') spawnSkillFx(e);
   if (newEvents.length) bl.textContent = [...newEvents].reverse().map(e => `[${e.t.toFixed(1)}s] ${e.text}`).join('\n') + '\n' + bl.textContent;
   $('phaseLabel').textContent = `⚔️ 战斗进行中 ${battle.time.toFixed(1)}s · 玩家存活 ${battle.alive('player').length} · AI 存活 ${battle.alive('enemy').length}`;
 }
@@ -212,18 +289,34 @@ function startBattle() {
   const playerInputs: BattleInputUnit[] = []; const enemyInputs: BattleInputUnit[] = [];
   game.board.forEach((u, i) => { if (u) playerInputs.push({ unit: u, x: (i % BOARD_W) + 0.5, y: 4 + Math.floor(i / BOARD_W) + 0.5, side: 'player' }); });
   aiPlaced.forEach(p => enemyInputs.push({ unit: p.unit, x: p.x + 0.5, y: p.y + 0.5, side: 'enemy' }));
-  battle = new Battle(playerInputs, enemyInputs, Math.random); lastEventIdx = 0; $('battleLog').textContent = '';
+  battle = new Battle(playerInputs, enemyInputs, Math.random); lastEventIdx = 0; fxCount = 0; $('battleLog').textContent = ''; $('lastSkill').textContent = '';
   game.phase = 'battle'; addLog(game, `第 ${game.round} 回合战斗开始：AI 部署 ${aiTeam.length} 单位`);
-  renderAll(); renderBattleTokens();
+  renderAll(); renderBattleTokens(); startBattleTimer();
+}
+function startBattleTimer() {
+  if (battleTimer) clearInterval(battleTimer);
   battleTimer = setInterval(() => {
     if (!battle) return; battle.step(0.1); renderBattleTokens();
     if (battle.winner) { const final = battle; battle = null; if (battleTimer) clearInterval(battleTimer); battleTimer = null; battle = final; endBattle(); }
-  }, 100);
+  }, 100 / battleSpeed);
 }
 $('btnBattle').onclick = startBattle;
-$('btnRefresh').onclick = () => { if (!refreshShop(game)) setMsg('算力不足，刷新需要 2'); else setMsg('商店已刷新（-2 算力）'); renderAll(); };
+$('btnSpeed').onclick = () => { battleSpeed = battleSpeed === 1 ? 2 : 1; ($('btnSpeed') as HTMLButtonElement).textContent = `⏩ 速度 ${battleSpeed}×`; if (battle) startBattleTimer(); };
+$('btnLock').onclick = () => { setMsg(toggleShopLock(game)); renderAll(); };
+$('btnRefresh').onclick = () => {
+  if (!refreshShop(game)) { setMsg('算力不足，刷新需要 2'); }
+  else { setMsg('商店已刷新（-2 算力）'); renderAll(); const shopEl = $('shop'); shopEl.classList.add('refreshing'); setTimeout(() => shopEl.classList.remove('refreshing'), 400); return; }
+  renderAll();
+};
 $('btnXp').onclick = () => { setMsg(buyXp(game)); renderAll(); };
 $('btnSell').onclick = () => { setMsg(sellUnit(game)); renderAll(); };
+$('btnSell').ondragover = (e) => { if (dragData) { e.preventDefault(); ($('btnSell') as HTMLElement).classList.add('drag-over'); } };
+$('btnSell').ondragleave = () => ($('btnSell') as HTMLElement).classList.remove('drag-over');
+$('btnSell').ondrop = (e) => {
+  e.preventDefault(); ($('btnSell') as HTMLElement).classList.remove('drag-over', 'sell-ready');
+  if (!dragData) return; const src = dragData; dragData = null;
+  game.selectedUid = src.uid; game.selectedWhere = src.where; setMsg(sellUnit(game)); renderAll();
+};
 $('btnDeploy').onclick = () => { setMsg(deploySelected()); renderAll(); };
 $('btnReturn').onclick = () => { setMsg(returnSelected()); renderAll(); };
 $('btnAutoDeploy').onclick = () => { setMsg(autoDeployAll()); renderAll(); };

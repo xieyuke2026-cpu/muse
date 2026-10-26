@@ -9,6 +9,9 @@ export function initialPool(): Map<string, number> {
   return m;
 }
 // 等级影响的费用概率（仿自走棋常见曲线，公开写在商店面板）
+export function shopOdds(level: number): number[] {
+  return [...ODDS[Math.min(9, Math.max(1, level))]];
+}
 const ODDS: Record<number, number[]> = {
   1: [1, 0, 0, 0, 0], 2: [1, 0, 0, 0, 0], 3: [0.75, 0.25, 0, 0, 0], 4: [0.55, 0.30, 0.15, 0, 0],
   5: [0.45, 0.33, 0.20, 0.02, 0], 6: [0.30, 0.35, 0.25, 0.10, 0], 7: [0.20, 0.30, 0.30, 0.15, 0.05],

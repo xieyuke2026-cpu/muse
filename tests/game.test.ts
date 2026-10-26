@@ -7,6 +7,7 @@ import { newUid } from '../src/game/types';
 import { getUnit } from '../src/game/units';
 import { rollShop, initialPool } from '../src/game/shop';
 import { mulberry32 } from '../src/game/engine';
+import { unitImageUrl } from '../src/game/images';
 
 const mk = (defId: string, star: 1 | 2 | 3 = 1) => ({ uid: newUid(), defId, star, items: [] as string[] });
 
@@ -76,6 +77,13 @@ describe('战斗引擎', () => {
       [{ unit: mk('sanctum', 3), x: 3.5, y: 5.5, side: 'player' }],
       [{ unit: mk('sanctum', 3), x: 3.5, y: 2.5, side: 'enemy' }], 5);
     expect(b.winner).not.toBeNull(); expect(b.time).toBeLessThanOrEqual(60.1);
+  });
+});
+describe('图片素材', () => {
+  it('6 个职业都有内嵌图片数据（非空 data URI）', () => {
+    for (const role of ['突袭程序', '防御节点', '算力核心', '分析引擎', '修复进程', '混沌程序']) {
+      expect(unitImageUrl(role).startsWith('data:image/jpeg;base64,')).toBe(true);
+    }
   });
 });
 describe('AI 与存档', () => {

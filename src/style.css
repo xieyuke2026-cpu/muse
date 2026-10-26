@@ -16,10 +16,21 @@ button.danger{background:#3b0a2a;border-color:#e879f9;color:#fbcfe8}
 .log{height:260px;overflow:auto;font-size:12px;line-height:1.5;color:#94a3b8;white-space:pre-wrap}
 .arena{position:relative;height:420px;border:1px solid #22d3ee55;border-radius:10px;background:radial-gradient(circle at 50% 50%,#0b2a4a33,#020617),repeating-linear-gradient(0deg,#ffffff08 0 1px,transparent 1px 24px),repeating-linear-gradient(90deg,#ffffff08 0 1px,transparent 1px 24px);overflow:hidden}
 .arena .mid{position:absolute;left:0;right:0;top:50%;border-top:2px dashed #e879f955}
-.token{position:absolute;width:58px;height:64px;transform:translate(-50%,-50%);text-align:center;transition:left .1s linear,top .1s linear;border-radius:8px;border:2px solid;padding-top:4px;background:#020617dd;z-index:2}
-.token.enemy{border-color:#f472b6} .token.player{border-color:#22d3ee}
+.token{position:absolute;width:64px;height:86px;transform:translate(-50%,-50%);text-align:center;transition:left .1s linear,top .1s linear;border-radius:8px;border:3px solid;padding-top:3px;background:#020617dd;z-index:2}
+.token.enemy{border-color:#f43f5e;background:#2a0a18dd;box-shadow:0 0 14px #f43f5e88}
+.token.player{border-color:#22d3ee;background:#082a33dd;box-shadow:0 0 14px #22d3ee88}
 .token .ic{font-size:22px} .token .nm{font-size:11px;white-space:nowrap;overflow:hidden}
+.side-badge{position:absolute;top:-10px;left:-8px;width:20px;height:20px;line-height:20px;border-radius:50%;font-size:12px;font-weight:bold;color:#fff}
+.token.player .side-badge{background:#0891b2} .token.enemy .side-badge{background:#e11d48}
 .hp{height:6px;background:#1e293b;border-radius:3px;margin:3px 4px 0;overflow:hidden} .hp i{display:block;height:100%;background:#22c55e}
+.token.enemy .hp i{background:#ef4444} .token.player .hp i{background:#22c55e}
+.unit-img{width:30px;height:30px;object-fit:cover;border-radius:5px;vertical-align:middle}
+.unit-img.big{width:64px;height:64px} .unit-img.small{width:26px;height:26px}
+#enemyGrid .cell{background:#2a0a18aa;border-color:#f43f5e66}
+#playerGrid .cell{background:#082a33aa;border-color:#22d3ee66}
+.cell.target{outline:3px dashed #facc15;box-shadow:0 0 12px #facc15aa}
+.legend-player{color:#67e8f9;font-weight:bold} .legend-enemy{color:#fda4af;font-weight:bold}
+.step-hint{background:#0b2a4a;border:1px solid #22d3ee66;border-radius:8px;padding:8px 10px;margin:6px 0;font-size:13px;color:#fef08a}
 .hp.sh i{background:#38bdf8} .en{height:3px;background:#1e293b;margin:2px 4px 0} .en i{display:block;height:100%;background:#facc15}
 .grid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
 .cell{aspect-ratio:1;border:1px solid #1e3a5f;border-radius:6px;background:#0b122088;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;font-size:11px}
